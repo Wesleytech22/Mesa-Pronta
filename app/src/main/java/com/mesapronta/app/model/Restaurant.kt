@@ -7,5 +7,5 @@ data class Restaurant(
     val type: String,
     val rating: Float,
     val deliveryTime: String,
-    val imageUrl: String? = null
+    val availableTables: Int
 )

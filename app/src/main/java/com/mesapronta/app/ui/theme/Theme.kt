@@ -4,7 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val ColorScheme = lightColorScheme(
+private val LightColorScheme = lightColorScheme(
     primary = androidx.compose.ui.graphics.Color(0xFF0066CC),
     secondary = androidx.compose.ui.graphics.Color(0xFF66BB6A),
     background = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
@@ -20,7 +20,7 @@ fun MesaProntaAppTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = ColorScheme,
+        colorScheme = LightColorScheme,
         typography = MaterialTheme.typography,
         content = content
     )
