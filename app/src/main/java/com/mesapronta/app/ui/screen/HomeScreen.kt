@@ -6,213 +6,298 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mesapronta.app.model.Dish
+import com.mesapronta.app.model.Promotion
+import com.mesapronta.app.model.Restaurant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    onDishSelect: (Dish, Restaurant) -> Unit,
     onLogout: () -> Unit,
-    onOrdersClick: () -> Unit,
-    onTrackOrdersClick: () -> Unit
+    onCartClick: () -> Unit,
+    onPromotionsClick: () -> Unit,
+    cartItemCount: Int
 ) {
     var searchText by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Todos") }
+    var selectedRestaurant by remember { mutableStateOf<Restaurant?>(null) }
 
     val categories = listOf("Todos", "Italiano", "Japonês", "Brasileiro", "Fast Food", "Churrascaria", "Vegetariano", "Frutos do Mar")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Barra de Pesquisa
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Pesquisar")
-            },
-            placeholder = { Text("Pesquisar restaurantes...") },
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "🍽️ Mesa Pronta",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                actions = {
+                    // Cart Icon with badge
+                    BadgedBox(
+                        badge = {
+                            if (cartItemCount > 0) {
+                                Badge {
+                                    Text(cartItemCount.toString())
+                                }
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = onCartClick) {
+                            Icon(Icons.Default.ShoppingCart, contentDescription = "Carrinho")
+                        }
+                    }
+
+                    // Promotions Icon
+                    IconButton(onClick = onPromotionsClick) {
+                        Icon(Icons.Default.LocalOffer, contentDescription = "Promoções")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp)
-        )
-
-        // Seção: Categorias
-        Text(
-            text = "Categorias",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 12.dp)
-        )
-
-        LazyRow(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
         ) {
-            items(categories) { category ->
-                FilterChip(
-                    selected = category == selectedCategory,
-                    onClick = { selectedCategory = category },
-                    label = { Text(category) }
+            // Barra de Pesquisa
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Pesquisar")
+                },
+                placeholder = { Text("Pesquisar restaurantes...") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = MaterialTheme.shapes.medium
+            )
+
+            // Seção: Categorias
+            Text(
+                text = "Categorias",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 12.dp)
+            )
+
+            LazyRow(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(categories) { category ->
+                    FilterChip(
+                        selected = category == selectedCategory,
+                        onClick = {
+                            selectedCategory = category
+                            selectedRestaurant = null
+                        },
+                        label = { Text(category) }
+                    )
+                }
+            }
+
+            // SEÇÃO: RESTAURANTES
+            Text(
+                text = if (selectedRestaurant != null) "Restaurante Selecionado" else "Restaurantes - $selectedCategory",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
+            )
+
+            if (selectedRestaurant != null) {
+                // MOSTRA PRATOS DO RESTAURANTE SELECIONADO
+                SelectedRestaurantSection(
+                    restaurant = selectedRestaurant!!,
+                    onBackClick = { selectedRestaurant = null },
+                    onDishSelect = onDishSelect
+                )
+            } else {
+                // MOSTRA LISTA DE RESTAURANTES
+                RestaurantListSection(
+                    category = selectedCategory,
+                    onRestaurantClick = { restaurant -> selectedRestaurant = restaurant }
                 )
             }
-        }
 
-        // Seção: Restaurantes da Categoria Selecionada
-        Text(
-            text = "Restaurantes - $selectedCategory",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
-        )
+            // SEÇÃO: PROMOÇÕES DO DIA
+            Text(
+                text = "🎉 Promoções do Dia",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
+            )
 
-        // Restaurantes de exemplo
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            when (selectedCategory) {
-                "Todos" -> {
-                    RestaurantItem("Pizzaria Bella", "Italiano", 4.5f, 5, "30-40 min")
-                    RestaurantItem("Sushi Master", "Japonês", 4.8f, 3, "25-35 min")
-                    RestaurantItem("Sabores do Brasil", "Brasileiro", 4.3f, 8, "35-45 min")
-                    RestaurantItem("Burger House", "Fast Food", 4.2f, 6, "20-30 min")
-                }
-                "Italiano" -> {
-                    RestaurantItem("Pizzaria Bella", "Italiano", 4.5f, 5, "30-40 min")
-                    RestaurantItem("Trattoria Roma", "Italiano", 4.4f, 4, "25-35 min")
-                }
-                "Japonês" -> {
-                    RestaurantItem("Sushi Master", "Japonês", 4.8f, 3, "25-35 min")
-                    RestaurantItem("Tokyo Grill", "Japonês", 4.3f, 5, "30-40 min")
-                }
-                "Brasileiro" -> {
-                    RestaurantItem("Sabores do Brasil", "Brasileiro", 4.3f, 8, "35-45 min")
-                }
-                "Fast Food" -> {
-                    RestaurantItem("Burger House", "Fast Food", 4.2f, 6, "20-30 min")
-                }
-                "Churrascaria" -> {
-                    RestaurantItem("Churrascaria Gaúcha", "Churrascaria", 4.7f, 4, "40-50 min")
-                }
-                "Vegetariano" -> {
-                    RestaurantItem("Verde Vida", "Vegetariano", 4.4f, 7, "25-35 min")
-                }
-                "Frutos do Mar" -> {
-                    RestaurantItem("Mar & Cia", "Frutos do Mar", 4.6f, 2, "30-40 min")
-                }
-            }
-        }
+            PromotionsSection()
 
-        // Seção: Pratos da Categoria Selecionada
-        Text(
-            text = "Pratos - $selectedCategory",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
-        )
-
-        // Pratos de exemplo
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            when (selectedCategory) {
-                "Todos" -> {
-                    DishItem("Pizza Margherita", "Molho de tomate, mussarela e manjericão", 45.90)
-                    DishItem("Sushi Salmão", "Salmão fresco com arroz", 32.50)
-                    DishItem("Feijoada", "Feijão preto com carne de porco", 35.00)
-                    DishItem("Hambúrguer Artesanal", "Carne 180g com queijo cheddar", 24.90)
-                }
-                "Italiano" -> {
-                    DishItem("Pizza Margherita", "Molho de tomate, mussarela e manjericão", 45.90)
-                    DishItem("Lasanha Bolonhesa", "Carne moída com molho branco", 38.50)
-                    DishItem("Risotto de Cogumelos", "Arroz arbóreo com cogumelos", 42.00)
-                }
-                "Japonês" -> {
-                    DishItem("Sushi Salmão", "Salmão fresco com arroz", 32.50)
-                    DishItem("Temaki Atum", "Cone de alga com atum", 28.90)
-                    DishItem("Yakissoba", "Macarrão com legumes e carne", 36.00)
-                }
-                "Brasileiro" -> {
-                    DishItem("Feijoada", "Feijão preto com carne de porco", 35.00)
-                    DishItem("Picanha", "Corte nobre da carne bovina", 89.90)
-                    DishItem("Moqueca de Peixe", "Peixe cozido com leite de coco", 55.00)
-                }
-                "Fast Food" -> {
-                    DishItem("Hambúrguer Artesanal", "Carne 180g com queijo cheddar", 24.90)
-                    DishItem("Batata Frita", "Porção grande com ketchup", 12.00)
-                }
-                "Churrascaria" -> {
-                    DishItem("Picanha na Chapa", "Acompanha farofa e vinagrete", 79.90)
-                    DishItem("Costela Bovino", "Costela assada lentamente", 65.00)
-                }
-                "Vegetariano" -> {
-                    DishItem("Salada Caesar", "Alface, croutons e molho caesar", 22.90)
-                    DishItem("Quibe de Abóbora", "Quibe assado com abóbora", 18.50)
-                }
-                "Frutos do Mar" -> {
-                    DishItem("Camarão alho e óleo", "Camarão temperado com alho", 48.90)
-                    DishItem("Polenta com lula", "Lula frita com polenta cremosa", 42.00)
-                }
-            }
-        }
-
-        // Seção: Botões de Ação
-        Text(
-            text = "Meus Pedidos",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+            // Botão Sair
             Button(
-                onClick = onOrdersClick,
-                modifier = Modifier.weight(1f)
+                onClick = onLogout,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
-                Text("Pedidos Realizados")
+                Text("Sair")
             }
 
-            Button(
-                onClick = onTrackOrdersClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Acompanhar Pedidos")
-            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        // Botão Sair
-        Button(
-            onClick = onLogout,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text("Sair")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
+// SEÇÃO: RESTAURANTE SELECIONADO (PRATOS)
 @Composable
-fun RestaurantItem(name: String, type: String, rating: Float, tables: Int, deliveryTime: String) {
+fun SelectedRestaurantSection(
+    restaurant: Restaurant,
+    onBackClick: () -> Unit,
+    onDishSelect: (Dish, Restaurant) -> Unit
+) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        // Header do restaurante
+        Card(
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column {
+                        Text(
+                            text = restaurant.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = restaurant.type,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Button(onClick = onBackClick) {
+                        Text("Voltar")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Rating with stars
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { index ->
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = "Rating",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (index < restaurant.rating.toInt())
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.outline
+                            )
+                        }
+                        Text(
+                            text = " %.1f".format(restaurant.rating),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                    Text(
+                        text = "${restaurant.availableTables} mesas disponíveis",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // PRATOS DO RESTAURANTE
+        Text(
+            text = "🍽️ Cardápio",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            restaurant.dishes.forEach { dish ->
+                DishItem(
+                    dish = dish,
+                    restaurant = restaurant,
+                    onDishClick = onDishSelect
+                )
+            }
+        }
+    }
+}
+
+// SEÇÃO: LISTA DE RESTAURANTES
+@Composable
+fun RestaurantListSection(
+    category: String,
+    onRestaurantClick: (Restaurant) -> Unit
+) {
+    val restaurants = getRestaurantsByCategory(category)
+
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        restaurants.forEach { restaurant ->
+            RestaurantItem(
+                restaurant = restaurant,
+                onClick = { onRestaurantClick(restaurant) }
+            )
+        }
+    }
+}
+
+// SEÇÃO: PROMOÇÕES
+@Composable
+fun PromotionsSection() {
+    val promotions = getDailyPromotions()
+
+    LazyRow(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(promotions) { promotion ->
+            PromotionCard(promotion)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RestaurantItem(
+    restaurant: Restaurant,
+    onClick: () -> Unit
+) {
     Card(
+        onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -227,18 +312,18 @@ fun RestaurantItem(name: String, type: String, rating: Float, tables: Int, deliv
             ) {
                 Column {
                     Text(
-                        text = name,
+                        text = restaurant.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = type,
+                        text = restaurant.type,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(
-                    text = "$tables mesas",
+                    text = "${restaurant.availableTables} mesas",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -252,21 +337,27 @@ fun RestaurantItem(name: String, type: String, rating: Float, tables: Int, deliv
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                // Rating with stars
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = "Rating",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    repeat(5) { index ->
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = "Rating",
+                            modifier = Modifier.size(16.dp),
+                            tint = if (index < restaurant.rating.toInt())
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.outline
+                        )
+                    }
                     Text(
-                        text = "%.1f".format(rating),
+                        text = " %.1f".format(restaurant.rating),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 }
                 Text(
-                    text = deliveryTime,
+                    text = restaurant.deliveryTime,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -275,9 +366,15 @@ fun RestaurantItem(name: String, type: String, rating: Float, tables: Int, deliv
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DishItem(name: String, description: String, price: Double) {
+fun DishItem(
+    dish: Dish,
+    restaurant: Restaurant,
+    onDishClick: (Dish, Restaurant) -> Unit
+) {
     Card(
+        onClick = { onDishClick(dish, restaurant) },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -289,24 +386,186 @@ fun DishItem(name: String, description: String, price: Double) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = name,
+                    text = dish.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = description,
+                    text = dish.description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+                Text(
+                    text = "R$ %.2f".format(dish.price),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
-            Text(
-                text = "R$ %.2f".format(price),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 16.dp)
+            Icon(
+                Icons.Default.AddShoppingCart,
+                contentDescription = "Adicionar ao carrinho",
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
 }
+
+@Composable
+fun PromotionCard(promotion: Promotion) {
+    Card(
+        modifier = Modifier.width(280.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "🔥 ${promotion.title}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = promotion.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(
+                        text = "De R$ %.2f".format(promotion.originalPrice),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Por R$ %.2f".format(promotion.promoPrice),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "⏰ ${promotion.validHours}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+
+            Text(
+                text = "📍 ${promotion.restaurant}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// DADOS DE EXEMPLO
+fun getRestaurantsByCategory(category: String): List<Restaurant> {
+    return when (category) {
+        "Todos" -> listOf(jack33Restaurant, pizzariaBellaRestaurant, sushiMasterRestaurant)
+        "Italiano" -> listOf(pizzariaBellaRestaurant)
+        "Japonês" -> listOf(sushiMasterRestaurant)
+        "Brasileiro" -> listOf(jack33Restaurant)
+        else -> emptyList()
+    }
+}
+
+// RESTAURANTES DE EXEMPLO
+val jack33Restaurant = Restaurant(
+    id = "1",
+    name = "Jack33",
+    description = "Comida brasileira com tempero especial",
+    type = "Brasileiro",
+    rating = 4.6f,
+    deliveryTime = "35-45 min",
+    availableTables = 8,
+    dishes = listOf(
+        Dish("1", "Feijoada Completa", "Feijão preto com carne de porco, acompanha arroz, couve e farofa", 35.00),
+        Dish("2", "Picanha na Chapa", "Picanha grelhada com alho, acompanha arroz, feijão e farofa", 89.90),
+        Dish("3", "Moqueca de Peixe", "Peixe cozido com leite de coco e azeite de dendê", 55.00),
+        Dish("4", "Frango à Passarinho", "Frango frito crocante com alho", 42.00)
+    )
+)
+
+val pizzariaBellaRestaurant = Restaurant(
+    id = "2",
+    name = "Pizzaria Bella",
+    description = "Pizzas artesanais no forno a lenha",
+    type = "Italiano",
+    rating = 4.5f,
+    deliveryTime = "30-40 min",
+    availableTables = 5,
+    dishes = listOf(
+        Dish("5", "Pizza Margherita", "Molho de tomate, mussarela e manjericão", 45.90),
+        Dish("6", "Pizza Calabresa", "Calabresa, cebola e azeitonas", 48.90),
+        Dish("7", "Lasanha Bolonhesa", "Carne moída com molho branco", 38.50)
+    )
+)
+
+val sushiMasterRestaurant = Restaurant(
+    id = "3",
+    name = "Sushi Master",
+    description = "Sushi tradicional e contemporâneo",
+    type = "Japonês",
+    rating = 4.8f,
+    deliveryTime = "25-35 min",
+    availableTables = 3,
+    dishes = listOf(
+        Dish("8", "Sushi Salmão", "Salmão fresco com arroz", 32.50),
+        Dish("9", "Temaki Atum", "Cone de alga com atum", 28.90),
+        Dish("10", "Combo 40 Peças", "Variedade de sushis e sashimis", 79.90)
+    )
+)
+
+fun getDailyPromotions(): List<Promotion> = listOf(
+    Promotion(
+        id = "1",
+        title = "Almoço Executivo",
+        description = "Prato feito + sobremesa + refrigerante",
+        originalPrice = 45.90,
+        promoPrice = 29.90,
+        restaurant = "Jack33",
+        validHours = "11:30 às 14:00"
+    ),
+    Promotion(
+        id = "2",
+        title = "Happy Hour Pizza",
+        description = "Pizza média + 2 refrigerantes",
+        originalPrice = 65.90,
+        promoPrice = 39.90,
+        restaurant = "Pizzaria Bella",
+        validHours = "18:00 às 20:00"
+    ),
+    Promotion(
+        id = "3",
+        title = "Combo Sushi Família",
+        description = "60 peças + 4 temakis",
+        originalPrice = 129.90,
+        promoPrice = 89.90,
+        restaurant = "Sushi Master",
+        validHours = "Todo o dia"
+    )
+)

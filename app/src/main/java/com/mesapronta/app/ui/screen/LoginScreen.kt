@@ -1,9 +1,10 @@
 package com.mesapronta.app.ui.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,26 +12,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Título
+        // Logo/Title
         Text(
-            text = "Mesa Pronta",
-            style = MaterialTheme.typography.headlineLarge,
+            text = "🍽️ Mesa Pronta",
+            fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -40,77 +43,73 @@ fun LoginScreen(
             text = "Faça login para continuar",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 48.dp)
+            modifier = Modifier.padding(bottom = 32.dp)
         )
 
-        // Campos de login
+        // Email Field
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Usuário") },
-            placeholder = { Text("admin") },
+            value = email,
+            onValueChange = { email = it },
             leadingIcon = {
-                Icon(Icons.Default.Person, contentDescription = "Usuário")
+                Icon(Icons.Default.Email, contentDescription = "Email")
             },
+            label = { Text("Email") },
+            placeholder = { Text("seu@email.com") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            singleLine = true
+            shape = RoundedCornerShape(12.dp)
         )
 
+        // Password Field
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Senha") },
-            placeholder = { Text("1234") },
             leadingIcon = {
                 Icon(Icons.Default.Lock, contentDescription = "Senha")
             },
+            label = { Text("Senha") },
+            placeholder = { Text("Sua senha") },
+            visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 24.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
+            shape = RoundedCornerShape(12.dp)
         )
 
-        // Mensagem de erro
-        if (errorMessage.isNotEmpty()) {
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-
-        // BOTÃO ACESSAR - JÁ TESTADO
+        // Login Button
         Button(
             onClick = {
-                if (username.isBlank() || password.isBlank()) {
-                    errorMessage = "Preencha todos os campos"
-                } else if (username == "admin" && password == "1234") {
-                    println("✅ CREDENCIAIS CORRETAS")
-                    onLoginSuccess()
-                } else {
-                    errorMessage = "Usuário: admin | Senha: 1234"
-                }
+                isLoading = true
+                // Simulate login process
+                onLoginSuccess()
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp)
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            enabled = email.isNotBlank() && password.isNotBlank() && !isLoading
         ) {
-            Text(
-                "ACESSAR",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(
+                    text = "Entrar",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
-        // Texto de ajuda
-        Text(
-            text = "Use: admin / 1234",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 24.dp)
-        )
+        // Sign Up Link
+        TextButton(
+            onClick = { /* TODO: Navigate to sign up */ },
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text("Não tem uma conta? Cadastre-se")
+        }
     }
 }
