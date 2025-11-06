@@ -78,7 +78,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // 🍽️ 4. Tela de Detalhes do Restaurante
                     selectedRestaurant != null -> {
                         RestaurantDetailScreen(
                             restaurant = selectedRestaurant!!,
