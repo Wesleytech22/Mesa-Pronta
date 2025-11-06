@@ -7,5 +7,11 @@ data class Restaurant(
     val type: String,
     val rating: Float,
     val deliveryTime: String,
-    val imageUrl: String? = null
+    val imageUrl: String,
+    val address: String,
+    // --- NOVAS PROPRIEDADES ---
+    val menu: List<String>, // Adicione o menu
+    val availableTimes: List<String>, // Adicione os horários (já usados no DetailScreen)
+    val isOpen: Boolean = true // Adicione a flag de status (já usada no DetailScreen)
+    // -------------------------
 )
