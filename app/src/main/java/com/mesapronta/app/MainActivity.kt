@@ -5,11 +5,14 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.mesapronta.app.model.CartItem
 import com.mesapronta.app.model.ReservationDetails
 import com.mesapronta.app.model.Restaurant
@@ -166,3 +169,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+@Preview
+@Composable
+private fun mesapreview() {
+    MesaProntaAppTheme(Restaurant)
+
+}
+

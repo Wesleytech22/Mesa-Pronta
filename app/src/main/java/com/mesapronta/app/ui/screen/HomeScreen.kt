@@ -43,7 +43,7 @@ val sampleRestaurants = listOf(
         type = "Italiana",
         rating = 4.8f,
         deliveryTime = "20-30 min",
-        imageUrl = "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500",
+        imageUrl = "https://s2-oglobo.glbimg.com/5d4BjkYykotKFxtGv41iLOMOp8A=/0x0:2355x1592/888x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_da025474c0c44edd99332dddb09cabe8/internal_photos/bs/2024/Z/T/Bo7lsdTdKS8PEdYuautg/107608847.jpg",
         address = "São Paulo",
         menu = listOf(
             MenuItem(1, "Pizza Margherita", "Molho de tomate, mussarela e manjericão", 45.90, "Pizzas"),
@@ -102,6 +102,23 @@ val sampleRestaurants = listOf(
             MenuItem(12, "Guacamole", "Pasta de abacate temperada", 15.90, "Acompanhamentos")
         ),
         availableTimes = listOf("18:30", "19:30", "20:30"),
+        isOpen = true
+    ),
+    Restaurant(
+        id = 4,
+        name = "Templo zulai",
+        description = "Comidas tipicas de Taiwan, com sabores maravilhosos.",
+        type = "Chinesa",
+        rating = 4.5f,
+        deliveryTime = "40-60 min",
+        imageUrl = "https://china2brazil.com.br/wp-content/uploads/2024/09/comidas-chinesas-990x660.jpg",
+        address = "Consolação",
+        menu = listOf(
+            MenuItem(10, "Gong Bao Ji Ding", "Cubos de frango salteados com amendoim, pimenta seca e um molho levemente adocicado e azedo. Um clássico de Sichuan", 32.90, "Pratos Principais"),
+            MenuItem(11, "Ma Po Dou Fu", "Um prato picante de Sichuan com tofu em cubos em um molho de feijão preto fermentado, carne moída e pimenta Sichuan.", 28.50, "Pratos Principais"),
+            MenuItem(12, "Peking Duck", "Uma iguaria de Beijing. O pato é assado até a pele ficar extremamente crocante e é servido com panquecas finas, molho hoisin e cebolinha", 15.90, "Acompanhamentos")
+        ),
+        availableTimes = listOf("12:00", "12:30","13:00","18:30","18:50", "19:30", "20:30"),
         isOpen = true
     )
 )
