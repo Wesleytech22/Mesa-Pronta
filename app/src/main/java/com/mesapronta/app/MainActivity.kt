@@ -21,9 +21,11 @@ import com.mesapronta.app.ui.screen.TableSelectionScreen
 import com.mesapronta.app.ui.screens.*
 import com.mesapronta.app.ui.theme.MesaProntaAppTheme
 import com.mesapronta.app.viewmodel.AuthViewModel
+import com.mesapronta.app.viewmodel.ReadyOrdersViewModel
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
+    private val readyOrdersViewModel: ReadyOrdersViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +84,21 @@ class MainActivity : ComponentActivity() {
                                 isPaying = false
                                 isAddingFood = false
                                 cartItems = emptyList()
-                                selectedScreen = "orders" // Vai para pedidos após confirmação
+                                selectedScreen = "home"
+
+                                // Simular pedido pronto após confirmação (para demonstração)
+                                readyOrdersViewModel.addReadyOrder(
+                                    com.mesapronta.app.model.ReadyOrder(
+                                        id = "ORD-${System.currentTimeMillis().toString().takeLast(6)}",
+                                        restaurantName = selectedRestaurant?.name ?: "Restaurante",
+                                        reservationTime = selectedTimeForReservation ?: "19:00",
+                                        readyTime = "Agora",
+                                        tableNumber = currentReservationDetails?.tableNumber ?: 1,
+                                        items = cartItems.map { "${it.quantity}x ${it.menuItem.name}" },
+                                        isCollected = false
+                                    )
+                                )
+
                                 Toast.makeText(this@MainActivity, "Reserva confirmada com sucesso!", Toast.LENGTH_SHORT).show()
                             },
                             onBack = {
@@ -141,7 +157,8 @@ class MainActivity : ComponentActivity() {
                                 selectedTimeForReservation = null
                                 currentReservationDetails = null
                                 cartItems = emptyList()
-                            }
+                            },
+                            readyOrdersViewModel = readyOrdersViewModel
                         )
                     }
                 }

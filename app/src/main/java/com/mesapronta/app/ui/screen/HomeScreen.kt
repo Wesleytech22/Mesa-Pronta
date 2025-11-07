@@ -1,7 +1,6 @@
-package com.mesapronta.app.ui.screens
+package com.mesapronta.app.ui.screen
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,8 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,17 +20,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.mesapronta.app.R
 import com.mesapronta.app.model.MenuItem
+import com.mesapronta.app.model.ReadyOrder
 import com.mesapronta.app.model.Restaurant
+import com.mesapronta.app.viewmodel.ReadyOrdersViewModel
 import kotlin.random.Random
 
 // --- DADOS DE EXEMPLO COMPLETOS ---
@@ -114,223 +113,102 @@ val categories = listOf("Italiana", "Japonesa", "Brasileira", "Mexicana", "Chine
 fun HomeScreen(
     onLogout: () -> Unit,
     onRestaurantSelected: (Restaurant) -> Unit,
+    readyOrdersViewModel: ReadyOrdersViewModel,
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedLocation by remember { mutableStateOf("São Paulo") }
-
     var showCouponDialog by remember { mutableStateOf(false) }
     var couponCategorySelected by remember { mutableStateOf<String?>(null) }
     var generatedCoupon by remember { mutableStateOf<String?>(null) }
+    var showReadyOrdersDialog by remember { mutableStateOf(false) }
 
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
-    val ctx = LocalContext.current
+    val context = LocalContext.current
+
+    // Coletar os pedidos prontos do ViewModel
+    val readyOrders by readyOrdersViewModel.readyOrders.collectAsStateWithLifecycle()
+    val hasNewReadyOrders by readyOrdersViewModel.hasNewReadyOrders.collectAsStateWithLifecycle()
+
+    val uncollectedOrders = readyOrders.filter { !it.isCollected }
 
     fun generateSixDigitCoupon(): String {
         return String.format("%06d", Random.nextInt(0, 1_000_000))
     }
 
     val restaurants = sampleRestaurants
-
     val filteredRestaurants = restaurants.filter {
         (selectedCategory == null || it.type == selectedCategory) &&
                 (selectedLocation.isEmpty() || it.address.contains(selectedLocation, ignoreCase = true))
     }
 
-    // --- DIÁLOGO DE CUPOM ---
-    if (showCouponDialog) {
-        Dialog(onDismissRequest = { showCouponDialog = false }) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        "Gerar Cupom de Desconto",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                    Spacer(Modifier.height(16.dp))
-
-                    Text("Selecione uma categoria:", style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(8.dp))
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(categories) { category ->
-                            FilterChip(
-                                selected = category == couponCategorySelected,
-                                onClick = { couponCategorySelected = category },
-                                label = { Text(category) }
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(24.dp))
-
-                    Button(
-                        onClick = {
-                            if (couponCategorySelected != null) {
-                                generatedCoupon = generateSixDigitCoupon()
-                            }
-                        },
-                        enabled = couponCategorySelected != null,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text("Gerar Cupom para ${couponCategorySelected ?: "Categoria"}")
-                    }
-
-                    generatedCoupon?.let { coupon ->
-                        Spacer(Modifier.height(16.dp))
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("Seu Cupom Gerado:", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    coupon,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(Modifier.height(16.dp))
-                                Button(
-                                    onClick = {
-                                        clipboardManager.setText(AnnotatedString(coupon))
-                                        Toast.makeText(ctx, "Cupom copiado!", Toast.LENGTH_SHORT).show()
-                                        showCouponDialog = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Copiar e Fechar")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    // DIÁLOGO DE PEDIDOS PRONTOS
+    if (showReadyOrdersDialog) {
+        ReadyOrdersDialog(
+            readyOrders = uncollectedOrders,
+            onMarkAsCollected = { orderId ->
+                readyOrdersViewModel.markAsCollected(orderId)
+            },
+            onDismiss = { showReadyOrdersDialog = false }
+        )
     }
-    // --- FIM DO DIÁLOGO DE CUPOM ---
+
+    // DIÁLOGO DE CUPOM
+    if (showCouponDialog) {
+        CouponDialog(
+            couponCategorySelected = couponCategorySelected,
+            generatedCoupon = generatedCoupon,
+            onCategorySelected = { couponCategorySelected = it },
+            onGenerateCoupon = { generatedCoupon = generateSixDigitCoupon() },
+            onCopyAndClose = { coupon ->
+                clipboardManager.setText(AnnotatedString(coupon))
+                Toast.makeText(context, "Cupom copiado!", Toast.LENGTH_SHORT).show()
+                showCouponDialog = false
+            },
+            onDismiss = { showCouponDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // --- 1. CABEÇALHO (Logo, Localização, Botões) ---
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Logo do app
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "MP",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column {
-                        Text("Seja Bem-vindo! 👋", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Campo de localização
-                        OutlinedTextField(
-                            value = selectedLocation,
-                            onValueChange = { selectedLocation = it },
-                            placeholder = { Text("Digite sua localização") },
-                            singleLine = true,
-                            modifier = Modifier
-                                .width(220.dp)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                            )
-                        )
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Botão de cupom
-                    IconButton(
-                        onClick = {
-                            couponCategorySelected = null
-                            generatedCoupon = null
-                            showCouponDialog = true
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Sell,
-                            contentDescription = "Cupons de desconto",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Botão de logout
-                    TextButton(onClick = onLogout) {
-                        Text("Sair", color = MaterialTheme.colorScheme.primary)
-                    }
-                }
+        // BANNER DE PEDIDOS PRONTOS (aparece apenas se houver pedidos)
+        if (uncollectedOrders.isNotEmpty()) {
+            item {
+                ReadyOrdersBanner(
+                    orderCount = uncollectedOrders.size,
+                    onClick = { showReadyOrdersDialog = true },
+                    modifier = Modifier.padding(16.dp)
+                )
             }
         }
 
-        // --- 2. CATEGORIAS ---
+        // CABEÇALHO
         item {
-            Text(
-                "Categorias",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            HomeHeader(
+                selectedLocation = selectedLocation,
+                onLocationChange = { selectedLocation = it },
+                onCouponClick = {
+                    couponCategorySelected = null
+                    generatedCoupon = null
+                    showCouponDialog = true
+                },
+                onLogout = onLogout,
+                hasNotifications = hasNewReadyOrders
             )
-
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(vertical = 8.dp)
-            ) {
-                items(categories) { category ->
-                    FilterChip(
-                        selected = category == selectedCategory,
-                        onClick = {
-                            selectedCategory = if (selectedCategory == category) null else category
-                        },
-                        label = { Text(category) }
-                    )
-                }
-            }
         }
 
-        // --- 3. PROMOÇÕES ---
+        // CATEGORIAS
+        item {
+            CategoriesSection(
+                selectedCategory = selectedCategory,
+                onCategorySelected = { selectedCategory = it }
+            )
+        }
+
+        // PROMOÇÕES
         item {
             Text(
                 "🔥 Promoções da Semana",
@@ -338,14 +216,14 @@ fun HomeScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
             )
         }
-
         item {
-            PromotionCard(restaurant = restaurants.random()) { restaurant ->
-                onRestaurantSelected(restaurant)
-            }
+            PromotionCard(
+                restaurant = restaurants.random(),
+                onClick = onRestaurantSelected
+            )
         }
 
-        // --- 4. LISTA DE RESTAURANTES ---
+        // RESTAURANTES
         item {
             Text(
                 "🍽️ Restaurantes Populares",
@@ -356,23 +234,7 @@ fun HomeScreen(
 
         if (filteredRestaurants.isEmpty()) {
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        "Nenhum restaurante encontrado",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "Tente alterar os filtros",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
+                EmptyRestaurantsState()
             }
         } else {
             items(filteredRestaurants) { restaurant ->
@@ -389,8 +251,381 @@ fun HomeScreen(
     }
 }
 
-// --- Funções Auxiliares ---
+// COMPONENTE: Banner de Pedidos Prontos
+@Composable
+fun ReadyOrdersBanner(
+    orderCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BadgedBox(
+                    badge = {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ) {
+                            Text(
+                                orderCount.toString(),
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.RestaurantMenu,
+                        contentDescription = "Pedidos Prontos",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
 
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+                    Text(
+                        "Seu pedido está pronto!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        "$orderCount pedido(s) aguardando retirada",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "Ver pedidos",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+// COMPONENTE: Diálogo de Pedidos Prontos
+@Composable
+fun ReadyOrdersDialog(
+    readyOrders: List<ReadyOrder>,
+    onMarkAsCollected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "🎉 Pedidos Prontos",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Fechar")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (readyOrders.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Todos coletados",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Todos os pedidos foram coletados!",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.heightIn(max = 400.dp)
+                    ) {
+                        items(readyOrders) { order ->
+                            ReadyOrderItem(
+                                order = order,
+                                onMarkAsCollected = onMarkAsCollected
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Fechar")
+                }
+            }
+        }
+    }
+}
+
+// COMPONENTE: Item de Pedido Pronto
+@Composable
+fun ReadyOrderItem(
+    order: ReadyOrder,
+    onMarkAsCollected: (String) -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        order.restaurantName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Pedido #${order.id}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Informações de horário
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = "Horário",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "Reserva: ${order.reservationTime} | Pronto: ${order.readyTime}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Mesa
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.TableRestaurant,
+                            contentDescription = "Mesa",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "Mesa ${order.tableNumber}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Itens do pedido
+                    Column {
+                        order.items.forEach { item ->
+                            Text(
+                                "• $item",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                // Botão de confirmar retirada
+                if (!order.isCollected) {
+                    Button(
+                        onClick = { onMarkAsCollected(order.id) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Retirei")
+                    }
+                } else {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Coletado",
+                        tint = Color.Green,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// COMPONENTE: Cabeçalho da Home
+@Composable
+fun HomeHeader(
+    selectedLocation: String,
+    onLocationChange: (String) -> Unit,
+    onCouponClick: () -> Unit,
+    onLogout: () -> Unit,
+    hasNotifications: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Logo com badge de notificação
+            BadgedBox(
+                badge = {
+                    if (hasNotifications) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "MP",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
+                Text(
+                    "Seja Bem-vindo! 👋",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                OutlinedTextField(
+                    value = selectedLocation,
+                    onValueChange = onLocationChange,
+                    placeholder = { Text("Digite sua localização") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .width(220.dp)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                    )
+                )
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onCouponClick) {
+                Icon(
+                    imageVector = Icons.Default.Sell,
+                    contentDescription = "Cupons de desconto",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            TextButton(onClick = onLogout) {
+                Text("Sair", color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+// COMPONENTE: Seção de Categorias
+@Composable
+fun CategoriesSection(
+    selectedCategory: String?,
+    onCategorySelected: (String) -> Unit
+) {
+    Column {
+        Text(
+            "Categorias",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            items(categories) { category ->
+                FilterChip(
+                    selected = category == selectedCategory,
+                    onClick = {
+                        onCategorySelected(
+                            if (selectedCategory == category) "" else category
+                        )
+                    },
+                    label = { Text(category) }
+                )
+            }
+        }
+    }
+}
+
+// COMPONENTE: Card de Promoção
 @Composable
 fun PromotionCard(
     restaurant: Restaurant,
@@ -403,7 +638,9 @@ fun PromotionCard(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable { onClick(restaurant) },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
@@ -456,6 +693,7 @@ fun PromotionCard(
     }
 }
 
+// COMPONENTE: Card de Restaurante
 @Composable
 fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit) {
     Card(
@@ -463,7 +701,9 @@ fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -528,6 +768,126 @@ fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.outline,
                     textAlign = TextAlign.End
                 )
+            }
+        }
+    }
+}
+
+// COMPONENTE: Estado vazio
+@Composable
+fun EmptyRestaurantsState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Default.SearchOff,
+            contentDescription = "Nenhum restaurante",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            "Nenhum restaurante encontrado",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            "Tente alterar os filtros de busca",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
+}
+
+// COMPONENTE: Diálogo de Cupom
+@Composable
+fun CouponDialog(
+    couponCategorySelected: String?,
+    generatedCoupon: String?,
+    onCategorySelected: (String) -> Unit,
+    onGenerateCoupon: () -> Unit,
+    onCopyAndClose: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    "Gerar Cupom de Desconto",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                Spacer(Modifier.height(16.dp))
+
+                Text(
+                    "Selecione uma categoria:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(8.dp))
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(categories) { category ->
+                        FilterChip(
+                            selected = category == couponCategorySelected,
+                            onClick = { onCategorySelected(category) },
+                            label = { Text(category) }
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                Button(
+                    onClick = onGenerateCoupon,
+                    enabled = couponCategorySelected != null,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Gerar Cupom para ${couponCategorySelected ?: "Categoria"}")
+                }
+
+                generatedCoupon?.let { coupon ->
+                    Spacer(Modifier.height(16.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "Seu Cupom Gerado:",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                coupon,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(
+                                onClick = { onCopyAndClose(coupon) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Copiar e Fechar")
+                            }
+                        }
+                    }
+                }
             }
         }
     }
