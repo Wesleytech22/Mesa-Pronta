@@ -1,5 +1,7 @@
 package com.mesapronta.app.model
 
+import com.mesapronta.app.ui.screens.MenuItem
+
 data class Restaurant(
     val id: Int,
     val name: String,
@@ -9,9 +11,7 @@ data class Restaurant(
     val deliveryTime: String,
     val imageUrl: String,
     val address: String,
-    // --- NOVAS PROPRIEDADES ---
-    val menu: List<String>, // Adicione o menu
-    val availableTimes: List<String>, // Adicione os horários (já usados no DetailScreen)
-    val isOpen: Boolean = true // Adicione a flag de status (já usada no DetailScreen)
-    // -------------------------
+    val menu: List<MenuItem>, // Agora é List<MenuItem> em vez de List<String>
+    val availableTimes: List<String>,
+    val isOpen: Boolean = true
 )

@@ -9,15 +9,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -29,36 +30,91 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
-import com.mesapronta.app.R // Assume que R está disponível
+import com.mesapronta.app.R
+import com.mesapronta.app.model.MenuItem
 import com.mesapronta.app.model.Restaurant
 import kotlin.random.Random
 
-// IMPORTAÇÃO CORRETA para as cores de OutlinedTextField (resolve o erro)
-import androidx.compose.material3.OutlinedTextFieldDefaults
-
-// --- DADOS DE EXEMPLO (Mantenha ou substitua pelo seu ViewModel) ---
+// --- DADOS DE EXEMPLO COMPLETOS ---
 val sampleRestaurants = listOf(
     Restaurant(
-        id = 1, name = "Pizzaria do DED", description = "Massas artesanais.", type = "Italiana", rating = 4.8f, deliveryTime = "20-30 min", imageUrl = "https://s2-oglobo.glbimg.com/5d4BjkYykotKFxtGv41iLOMOp8A=/0x0:2355x1592/888x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_da025474c0c44edd99332dddb09cabe8/internal_photos/bs/2024/Z/T/Bo7lsdTdKS8PEdYuautg/107608847.jpg", address = "São Paulo", menu = listOf("Lasanha","Pizzas"), availableTimes = listOf("19:00", "20:00"), isOpen = true
+        id = 1,
+        name = "Pizzaria do DED",
+        description = "Massas artesanais e pizzas deliciosas.",
+        type = "Italiana",
+        rating = 4.8f,
+        deliveryTime = "20-30 min",
+        imageUrl = "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500",
+        address = "São Paulo",
+        menu = listOf(
+            MenuItem(1, "Pizza Margherita", "Molho de tomate, mussarela e manjericão", 45.90, "Pizzas"),
+            MenuItem(2, "Lasanha Bolonhesa", "Camadas de massa com carne moída e queijo", 38.50, "Massas"),
+            MenuItem(3, "Tiramisu", "Sobremesa italiana clássica", 18.90, "Sobremesas")
+        ),
+        availableTimes = listOf("19:00", "20:00", "21:00"),
+        isOpen = true
     ),
     Restaurant(
-        id = 2, name = "Sushi House", description = "Peixes frescos e ambiente minimalista.", type = "Japonesa", rating = 4.6f, deliveryTime = "25-35 min", imageUrl = "https://images.unsplash.com/photo-1553621042-f6e147245754", address = "Rio de Janeiro", menu = listOf("Combinado Salmão"), availableTimes = listOf("18:30", "19:30"), isOpen = true
+        id = 2,
+        name = "Sushi House",
+        description = "Peixes frescos e ambiente minimalista.",
+        type = "Japonesa",
+        rating = 4.6f,
+        deliveryTime = "25-35 min",
+        imageUrl = "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=500",
+        address = "Rio de Janeiro",
+        menu = listOf(
+            MenuItem(4, "Combinado Salmão", "20 peças variadas de salmão", 89.90, "Sushis"),
+            MenuItem(5, "Temaki", "Cone de alga nori recheado", 24.50, "Temakis"),
+            MenuItem(6, "Missoshiru", "Sopa tradicional japonesa", 12.90, "Sopas")
+        ),
+        availableTimes = listOf("18:30", "19:30", "20:30"),
+        isOpen = true
     ),
     Restaurant(
-        id = 3, name = "Churrasco do Zé", description = "Cortes premium e buffet completo.", type = "Brasileira", rating = 4.9f, deliveryTime = "30-40 min", imageUrl = "https://images.unsplash.com/photo-1600891964599-f61ba0e24092", address = "São Paulo", menu = listOf("Picanha"), availableTimes = listOf("12:00", "13:00"), isOpen = false
+        id = 3,
+        name = "Churrasco do Zé",
+        description = "Cortes premium e buffet completo.",
+        type = "Brasileira",
+        rating = 4.9f,
+        deliveryTime = "30-40 min",
+        imageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500",
+        address = "São Paulo",
+        menu = listOf(
+            MenuItem(7, "Picanha", "Boi nobre grelhado na churrasqueira", 79.90, "Carnes"),
+            MenuItem(8, "Costela", "Costela bovina assada lentamente", 65.50, "Carnes"),
+            MenuItem(9, "Farofa", "Farofa caseira com bacon", 8.90, "Acompanhamentos")
+        ),
+        availableTimes = listOf("12:00", "13:00", "14:00"),
+        isOpen = false
     ),
     Restaurant(
-        id = 4, name = "La Casa de México", description = "Autêntica comida mexicana com muito sabor e tradição.", type = "Mexicana", rating = 4.0f, deliveryTime = "20-30 min", imageUrl ="https://www.gastronomia.com.br/wp-content/uploads/2023/10/comida-mexicana-um-festival-de-cores-e-sabores-do-mexico.jpg", address = "Consolação", menu = listOf("Tacos","Tamales", "Tortillas"),availableTimes = listOf("18:30", "19:30"), isOpen = true
+        id = 4,
+        name = "La Casa de México",
+        description = "Autêntica comida mexicana com muito sabor e tradição.",
+        type = "Mexicana",
+        rating = 4.0f,
+        deliveryTime = "20-30 min",
+        imageUrl = "https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=500",
+        address = "Consolação",
+        menu = listOf(
+            MenuItem(10, "Tacos", "3 unidades com carne moída e queijo", 32.90, "Pratos Principais"),
+            MenuItem(11, "Burrito", "Tortilla recheada com feijão e carne", 28.50, "Pratos Principais"),
+            MenuItem(12, "Guacamole", "Pasta de abacate temperada", 15.90, "Acompanhamentos")
+        ),
+        availableTimes = listOf("18:30", "19:30", "20:30"),
+        isOpen = true
     )
 )
-val categories = listOf("Italiana", "Japonesa", "Brasileira", "Chinesa", "Mexicana")
-// --- FIM DOS DADOS DE EXEMPLO ---
+
+val categories = listOf("Italiana", "Japonesa", "Brasileira", "Mexicana", "Chinesa", "Árabe")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
-    onRestaurantSelected: (Restaurant) -> Unit
+    onRestaurantSelected: (Restaurant) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedLocation by remember { mutableStateOf("São Paulo") }
@@ -78,18 +134,32 @@ fun HomeScreen(
 
     val filteredRestaurants = restaurants.filter {
         (selectedCategory == null || it.type == selectedCategory) &&
-                (selectedLocation.isEmpty() || it.address.equals(selectedLocation, ignoreCase = true))
+                (selectedLocation.isEmpty() || it.address.contains(selectedLocation, ignoreCase = true))
     }
 
     // --- DIÁLOGO DE CUPOM ---
     if (showCouponDialog) {
         Dialog(onDismissRequest = { showCouponDialog = false }) {
-            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.padding(16.dp)
+            ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text("Gerar Cupom de Desconto", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        "Gerar Cupom de Desconto",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                     Spacer(Modifier.height(16.dp))
 
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Selecione uma categoria:", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(8.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         items(categories) { category ->
                             FilterChip(
                                 selected = category == couponCategorySelected,
@@ -99,7 +169,7 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(24.dp))
 
                     Button(
                         onClick = {
@@ -107,20 +177,42 @@ fun HomeScreen(
                                 generatedCoupon = generateSixDigitCoupon()
                             }
                         },
-                        enabled = couponCategorySelected != null
+                        enabled = couponCategorySelected != null,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
                         Text("Gerar Cupom para ${couponCategorySelected ?: "Categoria"}")
                     }
 
                     generatedCoupon?.let { coupon ->
                         Spacer(Modifier.height(16.dp))
-                        Text("Seu Cupom: $coupon")
-                        Button(onClick = {
-                            clipboardManager.setText(AnnotatedString(coupon))
-                            Toast.makeText(ctx, "Cupom copiado!", Toast.LENGTH_SHORT).show()
-                            showCouponDialog = false
-                        }) {
-                            Text("Copiar e Fechar")
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("Seu Cupom Gerado:", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    coupon,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Button(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(coupon))
+                                        Toast.makeText(ctx, "Cupom copiado!", Toast.LENGTH_SHORT).show()
+                                        showCouponDialog = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Copiar e Fechar")
+                                }
+                            }
                         }
                     }
                 }
@@ -130,7 +222,7 @@ fun HomeScreen(
     // --- FIM DO DIÁLOGO DE CUPOM ---
 
     LazyColumn(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
@@ -144,26 +236,30 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val logoResourceId = R.drawable.img01
-
-                    if (logoResourceId != 0) {
-                        Image(
-                            painter = painterResource(id = logoResourceId),
-                            contentDescription = "Logo Mesa Pronta",
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                    // Logo do app
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "MP",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
                         )
-                    } else {
-                        Text(text = "Mesa Pronta", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column {
-                        Text("Seja Bem vindo! 👋", fontSize = 14.sp)
+                        Text("Seja Bem-vindo! 👋", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                        // --- CORREÇÃO DEFINITIVA DO OutlinedTextField ---
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Campo de localização
                         OutlinedTextField(
                             value = selectedLocation,
                             onValueChange = { selectedLocation = it },
@@ -171,13 +267,11 @@ fun HomeScreen(
                             singleLine = true,
                             modifier = Modifier
                                 .width(220.dp)
-                                .height(56.dp),
+                                .height(50.dp),
                             shape = RoundedCornerShape(24.dp),
-                            // Resolve Unresolved reference 'outlinedTextFieldColors'
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                // Adiciona cores de contêiner transparentes para um visual limpo de Home Screen
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
                             )
@@ -186,23 +280,26 @@ fun HomeScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = {
-                        couponCategorySelected = null
-                        generatedCoupon = null
-                        showCouponDialog = true
-                    }) {
-                        // Ícone corrigido (substitui 'ic_coupon')
+                    // Botão de cupom
+                    IconButton(
+                        onClick = {
+                            couponCategorySelected = null
+                            generatedCoupon = null
+                            showCouponDialog = true
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Sell,
-                            contentDescription = "Cupom",
+                            contentDescription = "Cupons de desconto",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    // Botão de logout
                     TextButton(onClick = onLogout) {
-                        Text("Sair")
+                        Text("Sair", color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -210,6 +307,12 @@ fun HomeScreen(
 
         // --- 2. CATEGORIAS ---
         item {
+            Text(
+                "Categorias",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -218,7 +321,9 @@ fun HomeScreen(
                 items(categories) { category ->
                     FilterChip(
                         selected = category == selectedCategory,
-                        onClick = { selectedCategory = if (selectedCategory == category) null else category },
+                        onClick = {
+                            selectedCategory = if (selectedCategory == category) null else category
+                        },
                         label = { Text(category) }
                     )
                 }
@@ -228,44 +333,76 @@ fun HomeScreen(
         // --- 3. PROMOÇÕES ---
         item {
             Text(
-                "Promoções da Semana",
+                "🔥 Promoções da Semana",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
             )
-            PromotionCard(restaurant = restaurants.random())
+        }
+
+        item {
+            PromotionCard(restaurant = restaurants.random()) { restaurant ->
+                onRestaurantSelected(restaurant)
+            }
         }
 
         // --- 4. LISTA DE RESTAURANTES ---
         item {
             Text(
-                "Restaurantes Populares",
+                "🍽️ Restaurantes Populares",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
             )
         }
 
-        items(filteredRestaurants) { restaurant ->
-            RestaurantCard(
-                restaurant = restaurant,
-                onClick = { onRestaurantSelected(restaurant) }
-            )
+        if (filteredRestaurants.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Nenhum restaurante encontrado",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Tente alterar os filtros",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+        } else {
+            items(filteredRestaurants) { restaurant ->
+                RestaurantCard(
+                    restaurant = restaurant,
+                    onClick = { onRestaurantSelected(restaurant) }
+                )
+            }
         }
 
-        item { Spacer(modifier = Modifier.height(32.dp)) }
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+        }
     }
 }
 
 // --- Funções Auxiliares ---
 
 @Composable
-fun PromotionCard(restaurant: Restaurant) {
+fun PromotionCard(
+    restaurant: Restaurant,
+    onClick: (Restaurant) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .height(180.dp)
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { /* Ação */ },
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick(restaurant) },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -273,18 +410,48 @@ fun PromotionCard(restaurant: Restaurant) {
                 model = restaurant.imageUrl,
                 contentDescription = "Promoção em ${restaurant.name}",
                 modifier = Modifier.fillMaxSize(),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                contentScale = ContentScale.Crop
             )
-            Text(
-                "20% OFF em ${restaurant.name}",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.headlineSmall,
+
+            // Overlay gradiente
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.7f)
+                            ),
+                            startY = 300f
+                        )
+                    )
+            )
+
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .background(Color.Black.copy(alpha = 0.4f))
-                    .padding(8.dp)
-            )
+                    .padding(16.dp)
+            ) {
+                Text(
+                    "🎉 20% OFF",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    "em ${restaurant.name}",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    restaurant.description,
+                    color = Color.White.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
@@ -296,33 +463,72 @@ fun RestaurantCard(restaurant: Restaurant, onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Imagem do restaurante
             AsyncImage(
                 model = restaurant.imageUrl,
                 contentDescription = restaurant.name,
                 modifier = Modifier
                     .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(12.dp))
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Informações do restaurante
             Column(modifier = Modifier.weight(1f)) {
-                Text(restaurant.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                Text(restaurant.type, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    restaurant.name,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1
+                )
+
+                Text(
+                    restaurant.type,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, contentDescription = "Rating", tint = Color.Yellow, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = "Avaliação",
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(restaurant.rating.toString(), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "${restaurant.rating} • ${restaurant.deliveryTime}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
-            Text(
-                if (restaurant.isOpen) "Aberto" else "Fechado",
-                color = if (restaurant.isOpen) Color.Green.copy(alpha = 0.8f) else Color.Red.copy(alpha = 0.8f),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.End
-            )
+
+            // Status do restaurante
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    if (restaurant.isOpen) "🟢 Aberto" else "🔴 Fechado",
+                    color = if (restaurant.isOpen) Color(0xFF00C853) else Color(0xFFD50000),
+                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    restaurant.address,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    textAlign = TextAlign.End
+                )
+            }
         }
     }
 }

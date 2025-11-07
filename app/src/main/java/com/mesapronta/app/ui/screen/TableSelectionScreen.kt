@@ -2,8 +2,8 @@ package com.mesapronta.app.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add // CORREÇÃO 1: Importa o ícone Add
-import androidx.compose.material.icons.filled.Remove // CORREÇÃO 2: Importa o ícone Remove
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +26,8 @@ fun TableSelectionScreen(
     restaurant: Restaurant,
     selectedTime: String,
     onBack: () -> Unit,
-    onContinueToPayment: (ReservationDetails) -> Unit
+    onContinueToPayment: (ReservationDetails) -> Unit,
+    onAddMoreFood: () -> Unit // Novo callback para adicionar mais comidas
 ) {
     var peopleCount by remember { mutableStateOf(2) }
     var selectedTable by remember { mutableStateOf<Table?>(null) }
@@ -54,7 +55,7 @@ fun TableSelectionScreen(
             Text("Horário: $selectedTime", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- Seleção de Pessoas (Onde os ícones são usados) ---
+            // --- Seleção de Pessoas ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -63,11 +64,11 @@ fun TableSelectionScreen(
                 Text("Pessoas:", style = MaterialTheme.typography.bodyLarge)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { if (peopleCount > 1) peopleCount-- }) {
-                        Icon(Icons.Default.Remove, contentDescription = "Menos") // Agora resolvido
+                        Icon(Icons.Default.Remove, contentDescription = "Menos")
                     }
                     Text(peopleCount.toString(), modifier = Modifier.padding(horizontal = 16.dp))
                     IconButton(onClick = { peopleCount++ }) {
-                        Icon(Icons.Default.Add, contentDescription = "Mais") // Agora resolvido
+                        Icon(Icons.Default.Add, contentDescription = "Mais")
                     }
                 }
             }
@@ -89,22 +90,40 @@ fun TableSelectionScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = {
-                    selectedTable?.let { table ->
-                        val reservation = ReservationDetails(
-                            restaurant = restaurant,
-                            time = selectedTime,
-                            people = peopleCount,
-                            tableNumber = table.number
-                        )
-                        onContinueToPayment(reservation)
-                    }
-                },
-                enabled = selectedTable != null,
-                modifier = Modifier.fillMaxWidth()
+            // --- DOIS BOTÕES NO FINAL ---
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Continuar para o Pagamento")
+                // Botão 1: Adicionar Mais Comidas
+                Button(
+                    onClick = onAddMoreFood,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("➕ Adicionar Mais Comidas")
+                }
+
+                // Botão 2: Ir para Pagamento
+                Button(
+                    onClick = {
+                        selectedTable?.let { table ->
+                            val reservation = ReservationDetails(
+                                restaurant = restaurant,
+                                time = selectedTime,
+                                people = peopleCount,
+                                tableNumber = table.number
+                            )
+                            onContinueToPayment(reservation)
+                        }
+                    },
+                    enabled = selectedTable != null,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("💳 Ir para Pagamento")
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
