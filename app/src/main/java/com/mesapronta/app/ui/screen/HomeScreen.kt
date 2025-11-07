@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,13 +39,16 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 // --- DADOS DE EXEMPLO (Mantenha ou substitua pelo seu ViewModel) ---
 val sampleRestaurants = listOf(
     Restaurant(
-        id = 1, name = "Cantina Bella Napoli", description = "Massas artesanais.", type = "Italiana", rating = 4.8f, deliveryTime = "20-30 min", imageUrl = "https://images.unsplash.com/photo-1603079849561-7cf1f68f4b35", address = "São Paulo", menu = listOf("Lasanha"), availableTimes = listOf("19:00", "20:00"), isOpen = true
+        id = 1, name = "Pizzaria do DED", description = "Massas artesanais.", type = "Italiana", rating = 4.8f, deliveryTime = "20-30 min", imageUrl = "https://s2-oglobo.glbimg.com/5d4BjkYykotKFxtGv41iLOMOp8A=/0x0:2355x1592/888x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_da025474c0c44edd99332dddb09cabe8/internal_photos/bs/2024/Z/T/Bo7lsdTdKS8PEdYuautg/107608847.jpg", address = "São Paulo", menu = listOf("Lasanha","Pizzas"), availableTimes = listOf("19:00", "20:00"), isOpen = true
     ),
     Restaurant(
         id = 2, name = "Sushi House", description = "Peixes frescos e ambiente minimalista.", type = "Japonesa", rating = 4.6f, deliveryTime = "25-35 min", imageUrl = "https://images.unsplash.com/photo-1553621042-f6e147245754", address = "Rio de Janeiro", menu = listOf("Combinado Salmão"), availableTimes = listOf("18:30", "19:30"), isOpen = true
     ),
     Restaurant(
         id = 3, name = "Churrasco do Zé", description = "Cortes premium e buffet completo.", type = "Brasileira", rating = 4.9f, deliveryTime = "30-40 min", imageUrl = "https://images.unsplash.com/photo-1600891964599-f61ba0e24092", address = "São Paulo", menu = listOf("Picanha"), availableTimes = listOf("12:00", "13:00"), isOpen = false
+    ),
+    Restaurant(
+        id = 4, name = "La Casa de México", description = "Autêntica comida mexicana com muito sabor e tradição.", type = "Mexicana", rating = 4.0f, deliveryTime = "20-30 min", imageUrl ="https://www.gastronomia.com.br/wp-content/uploads/2023/10/comida-mexicana-um-festival-de-cores-e-sabores-do-mexico.jpg", address = "Consolação", menu = listOf("Tacos","Tamales", "Tortillas"),availableTimes = listOf("18:30", "19:30"), isOpen = true
     )
 )
 val categories = listOf("Italiana", "Japonesa", "Brasileira", "Chinesa", "Mexicana")
@@ -157,7 +161,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column {
-                        Text("Olá 👋", fontSize = 14.sp)
+                        Text("Seja Bem vindo! 👋", fontSize = 14.sp)
 
                         // --- CORREÇÃO DEFINITIVA DO OutlinedTextField ---
                         OutlinedTextField(
@@ -178,7 +182,6 @@ fun HomeScreen(
                                 unfocusedContainerColor = Color.Transparent,
                             )
                         )
-                        // ------------------------------------------------
                     }
                 }
 
@@ -190,7 +193,7 @@ fun HomeScreen(
                     }) {
                         // Ícone corrigido (substitui 'ic_coupon')
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = Icons.Default.Sell,
                             contentDescription = "Cupom",
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -229,7 +232,7 @@ fun HomeScreen(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             )
-            PromotionCard(restaurant = restaurants.first())
+            PromotionCard(restaurant = restaurants.random())
         }
 
         // --- 4. LISTA DE RESTAURANTES ---
