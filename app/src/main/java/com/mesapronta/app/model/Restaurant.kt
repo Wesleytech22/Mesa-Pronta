@@ -1,6 +1,6 @@
 package com.mesapronta.app.model
 
-import com.mesapronta.app.ui.screens.MenuItem
+import com.mesapronta.app.model.MenuItem
 
 data class Restaurant(
     val id: Int,

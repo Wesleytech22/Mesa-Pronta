@@ -15,6 +15,7 @@ import com.mesapronta.app.model.ReservationDetails
 import com.mesapronta.app.model.Restaurant
 import com.mesapronta.app.ui.screen.FoodSelectionScreen
 import com.mesapronta.app.ui.screen.LoginScreen
+import com.mesapronta.app.ui.screen.MainScreenWithBottomNav
 import com.mesapronta.app.ui.screen.PaymentScreen
 import com.mesapronta.app.ui.screen.TableSelectionScreen
 import com.mesapronta.app.ui.screens.*
