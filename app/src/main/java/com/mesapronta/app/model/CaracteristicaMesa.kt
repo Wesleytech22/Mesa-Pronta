@@ -1,5 +1,8 @@
 package com.mesapronta.app.model
 
-enum class CaracteristicaMesa {
-    VISTA_PARA_O_MAR, JANELA, ISOLADA, ACESSIVEL
-}
+// NOVO MODELO: Define as características especiais da mesa
+data class CaracteristicaMesa(
+    val id: String,
+    val nome: String, // Ex: "Vista para o Mar", "Mesa para Cadeirante", "Sofá"
+    val iconeUrl: String = ""
+)

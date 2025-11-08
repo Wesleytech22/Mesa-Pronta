@@ -5,21 +5,12 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mesapronta.app.model.CartItem
 import com.mesapronta.app.model.ReservationDetails
 import com.mesapronta.app.model.Restaurant
-import com.mesapronta.app.ui.screen.FoodSelectionScreen
-import com.mesapronta.app.ui.screen.LoginScreen
-import com.mesapronta.app.ui.screen.MainScreenWithBottomNav
-import com.mesapronta.app.ui.screen.PaymentScreen
-import com.mesapronta.app.ui.screen.TableSelectionScreen
-import com.mesapronta.app.ui.screens.*
+import com.mesapronta.app.ui.screen.*
 import com.mesapronta.app.ui.theme.MesaProntaAppTheme
 import com.mesapronta.app.viewmodel.AuthViewModel
 import com.mesapronta.app.viewmodel.ReadyOrdersViewModel
@@ -32,132 +23,120 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MesaProntaAppTheme {
-                val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+                val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
 
-                // Variáveis de Estado de Dados
+                // Estados de navegação
                 var selectedRestaurant by remember { mutableStateOf<Restaurant?>(null) }
-                var selectedTimeForReservation by remember { mutableStateOf<String?>(null) }
-                var currentReservationDetails by remember { mutableStateOf<ReservationDetails?>(null) }
-                var cartItems by remember { mutableStateOf(emptyList<CartItem>()) }
+                var currentReservation by remember { mutableStateOf<ReservationDetails?>(null) }
+                var cartItems by remember { mutableStateOf<List<CartItem>>(emptyList()) }
 
-                // Controles de estado de navegação
-                var isReserving by remember { mutableStateOf(false) }
+                var currentScreen by remember { mutableStateOf("home") }
+                var isCheckingIn by remember { mutableStateOf(false) }
                 var isPaying by remember { mutableStateOf(false) }
-                var isAddingFood by remember { mutableStateOf(false) }
 
-                // Estado para Bottom Navigation
-                var selectedScreen by remember { mutableStateOf("home") }
+                // NOVO: Estado para simular o pagamento da taxa (ou a necessidade dele)
+                var needsFeePayment by remember { mutableStateOf(false) }
+                val lateFeeAmount = 50.0
 
                 when {
-                    // 🔐 1. Tela de Login
-                    !isLoggedIn -> {
+                    isLoggedIn -> {
                         LoginScreen(
-                            onLoginSuccess = { authViewModel.login("admin", "1234") }
-                        )
-                    }
-
-                    // 🍽 2. Tela de Adicionar Comidas
-                    isAddingFood && selectedRestaurant != null -> {
-                        FoodSelectionScreen(
-                            menuItems = selectedRestaurant!!.menu,
-                            onBack = {
-                                isAddingFood = false
+                            onLoginSuccess = {
+                                authViewModel.login("admin", "1234")
                             },
-                            onContinueToPayment = { selectedCartItems ->
-                                cartItems = selectedCartItems
-                                isAddingFood = false
-                                isPaying = true
+                            onRegisterClicked = {
+                                Toast.makeText(this, "Navegar para Tela de Cadastro!", Toast.LENGTH_SHORT).show()
                             }
                         )
                     }
 
-                    // 💳 3. Tela de Pagamento
-                    isPaying && currentReservationDetails != null -> {
+                    // --- Lógica de Check-in (Atualizada) ---
+                    isCheckingIn && currentReservation != null -> {
+                        CheckInScreen(
+                            reservation = currentReservation!!,
+                            onCheckInComplete = { isConsumptionInPlace -> // Recebe true se for consumir no local
+                                isCheckingIn = false
+                                if (isConsumptionInPlace) {
+                                    Toast.makeText(this, "Check-in realizado para consumo no local!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(this, "Check-in realizado para retirada!", Toast.LENGTH_SHORT).show()
+                                }
+                                currentScreen = "home"
+                            },
+                            onBack = { isCheckingIn = false }
+                        )
+                    }
+
+                    // --- Simulação de Pagamento de Taxa (Pode ser integrado ao PaymentScreen real) ---
+                    needsFeePayment && currentReservation != null -> {
                         PaymentScreen(
-                            reservation = currentReservationDetails!!,
+                            reservation = currentReservation!!.copy(
+                                totalAmount = currentReservation!!.totalAmount + lateFeeAmount // Adiciona a taxa
+                            ),
                             cartItems = cartItems,
+                            couvertAmount = 0.0,
                             onReservationConfirmed = {
-                                // Limpa todos os estados para voltar à Home após a confirmação
-                                currentReservationDetails = null
+                                Toast.makeText(this, "Taxa paga! Check-in para consumo no local liberado.", Toast.LENGTH_SHORT).show()
+                                needsFeePayment = false
+                                isCheckingIn = true // Volta para a tela de check-in, agora sem o alerta de atraso
+                            },
+                            onBack = {
+                                needsFeePayment = false
+                                isCheckingIn = false
+                            }
+                        )
+                    }
+
+                    // --- Lógica de Pagamento de Reserva (Mantida) ---
+                    isPaying && currentReservation != null -> {
+                        PaymentScreen(
+                            reservation = currentReservation!!,
+                            cartItems = cartItems,
+                            couvertAmount = 10.0,
+                            onReservationConfirmed = {
+                                Toast.makeText(this, "Reserva confirmada!", Toast.LENGTH_SHORT).show()
+                                isPaying = false
+                                currentScreen = "home"
                                 selectedRestaurant = null
-                                selectedTimeForReservation = null
-                                isReserving = false
-                                isPaying = false
-                                isAddingFood = false
+                                currentReservation = null
                                 cartItems = emptyList()
-                                selectedScreen = "home"
-
-                                // Simular pedido pronto após confirmação (para demonstração)
-                                readyOrdersViewModel.addReadyOrder(
-                                    com.mesapronta.app.model.ReadyOrder(
-                                        id = "ORD-${System.currentTimeMillis().toString().takeLast(6)}",
-                                        restaurantName = selectedRestaurant?.name ?: "Restaurante",
-                                        reservationTime = selectedTimeForReservation ?: "19:00",
-                                        readyTime = "Agora",
-                                        tableNumber = currentReservationDetails?.tableNumber ?: 1,
-                                        items = cartItems.map { "${it.quantity}x ${it.menuItem.name}" },
-                                        isCollected = false
-                                    )
-                                )
-
-                                Toast.makeText(this@MainActivity, "Reserva confirmada com sucesso!", Toast.LENGTH_SHORT).show()
                             },
-                            onBack = {
-                                isPaying = false
-                            }
+                            onBack = { isPaying = false }
                         )
                     }
 
-                    // 🪑 4. Tela de Seleção de Mesa
-                    isReserving && selectedRestaurant != null && selectedTimeForReservation != null -> {
-                        TableSelectionScreen(
-                            restaurant = selectedRestaurant!!,
-                            selectedTime = selectedTimeForReservation!!,
-                            onBack = {
-                                isReserving = false
-                            },
-                            onContinueToPayment = { reservation ->
-                                currentReservationDetails = reservation
-                                cartItems = emptyList()
-                                isPaying = true
-                            },
-                            onAddMoreFood = {
-                                isAddingFood = true
-                            }
-                        )
-                    }
-
-                    // 📋 5. Tela de Detalhes do Restaurante
+                    // --- Lógica de Detalhe de Restaurante (Mantida) ---
                     selectedRestaurant != null -> {
                         RestaurantDetailScreen(
                             restaurant = selectedRestaurant!!,
-                            onBack = {
-                                selectedRestaurant = null
-                                isReserving = false
-                                selectedTimeForReservation = null
-                            },
-                            onReserveClicked = { restaurant, time ->
-                                selectedRestaurant = restaurant
-                                selectedTimeForReservation = time
-                                isReserving = true
+                            onBack = { selectedRestaurant = null },
+                            onReserveClicked = { restaurant, time, peopleCount ->
+                                // Simulação de criação de ReservationDetails
+                                currentReservation = ReservationDetails(
+                                    id = System.currentTimeMillis().toString(),
+                                    restaurantName = restaurant.name,
+                                    tableNumber = 1,
+                                    reservationTime = time,
+                                    numberOfPeople = peopleCount,
+                                    totalAmount = 0.0 // O total será calculado no PaymentScreen
+                                )
+                                isPaying = true
                             }
                         )
                     }
 
-                    // 🏠 6. Tela Principal com Bottom Navigation
+                    // --- Navegação Principal (Mantida) ---
                     else -> {
                         MainScreenWithBottomNav(
-                            selectedScreen = selectedScreen,
-                            onScreenSelected = { screen -> selectedScreen = screen },
+                            selectedScreen = currentScreen,
+                            onScreenSelected = { screen -> currentScreen = screen },
                             onLogout = { authViewModel.logout() },
                             onRestaurantSelected = { restaurant ->
                                 selectedRestaurant = restaurant
-                                isReserving = false
-                                isPaying = false
-                                isAddingFood = false
-                                selectedTimeForReservation = null
-                                currentReservationDetails = null
-                                cartItems = emptyList()
+                            },
+                            onCheckInSelected = { reservation ->
+                                currentReservation = reservation
+                                isCheckingIn = true
                             },
                             readyOrdersViewModel = readyOrdersViewModel
                         )

@@ -110,11 +110,16 @@ fun TableSelectionScreen(
                 Button(
                     onClick = {
                         selectedTable?.let { table ->
+                            // --- CORREÇÃO AQUI: Passando TODOS os 5 parâmetros obrigatórios ---
                             val reservation = ReservationDetails(
-                                restaurant = restaurant,
-                                time = selectedTime,
-                                people = peopleCount,
-                                tableNumber = table.number
+                                id = System.currentTimeMillis().toString(), // ID gerado
+                                restaurantName = restaurant.name,         // Nome do restaurante
+                                reservationTime = selectedTime,
+                                numberOfPeople = peopleCount,
+                                tableNumber = table.number,
+                                totalAmount = 0.0, // Valor inicial (será calculado no PaymentScreen)
+                                // Se o modelo aceitar o objeto Restaurant:
+                                // restaurant = restaurant
                             )
                             onContinueToPayment(reservation)
                         }

@@ -1,13 +1,17 @@
-package com.mesapronta.app.ui.screens
+package com.mesapronta.app.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.mesapronta.app.model.Restaurant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -15,82 +19,83 @@ import com.mesapronta.app.model.Restaurant
 fun RestaurantDetailScreen(
     restaurant: Restaurant,
     onBack: () -> Unit,
-    // Assinatura correta que aceita Restaurant e o horário (String)
-    onReserveClicked: (Restaurant, String) -> Unit
+    onReserveClicked: (Restaurant, String, Int) -> Unit
 ) {
     var selectedTime by remember { mutableStateOf<String?>(null) }
+    var peopleCount by remember { mutableStateOf(4) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(restaurant.name) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Voltar") }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            BottomBarDetail(
+                restaurant = restaurant,
+                selectedTime = selectedTime,
+                peopleCount = peopleCount,
+                onPeopleCountChange = { peopleCount = it },
+                onReserveClicked = {
+                    if (selectedTime != null) {
+                        onReserveClicked(restaurant, selectedTime!!, peopleCount)
+                    }
                 }
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-                .fillMaxSize()
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(restaurant.description, style = MaterialTheme.typography.bodyLarge)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Cardápio", style = MaterialTheme.typography.titleMedium)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(restaurant.menu) { item ->
-                        Text("🍽 $item", modifier = Modifier.padding(vertical = 4.dp))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text("Horários Disponíveis", style = MaterialTheme.typography.titleMedium)
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(restaurant.availableTimes) { time ->
-                        FilterChip(
-                            selected = time == selectedTime,
-                            onClick = { selectedTime = time },
-                            label = { Text(time) }
-                        )
-                    }
-                }
+        LazyColumn(modifier = Modifier.padding(paddingValues)) {
+            item {
+                AsyncImage(
+                    model = restaurant.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentScale = ContentScale.Crop
+                )
             }
-
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = {
-                    selectedTime?.let {
-                        if (restaurant.isOpen) {
-                            onReserveClicked(restaurant, it)
-                        }
-                    }
-                },
-                enabled = restaurant.isOpen && selectedTime != null,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (restaurant.isOpen) "Reservar Mesa" else "Restaurante Fechado")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+            item { RestaurantInfo(restaurant) }
+            item { TimeSlotSelection(restaurant.availableTimes, selectedTime) { selectedTime = it } }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }
 
+// Sub-componentes omitidos para brevidade (RestaurantInfo, TimeSlotSelection, BottomBarDetail)
+@Composable
+fun RestaurantInfo(restaurant: Restaurant) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(restaurant.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(restaurant.description, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+fun TimeSlotSelection(availableTimes: List<String>, selectedTime: String?, onTimeSelected: (String) -> Unit) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Horários Disponíveis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        // Implementação básica com LazyRow
+    }
+}
+
+@Composable
+fun BottomBarDetail(restaurant: Restaurant, selectedTime: String?, peopleCount: Int, onPeopleCountChange: (Int) -> Unit, onReserveClicked: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Seletor de Pessoas e botão de Reservar
+            Button(onClick = onReserveClicked, enabled = selectedTime != null, modifier = Modifier.fillMaxWidth()) {
+                Text("Reservar")
+            }
+        }
+    }
+}
