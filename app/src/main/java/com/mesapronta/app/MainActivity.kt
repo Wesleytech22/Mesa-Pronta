@@ -11,8 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.mesapronta.app.model.CartItem
 import com.mesapronta.app.model.ReservationDetails
 import com.mesapronta.app.model.Restaurant
@@ -170,10 +168,54 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
-private fun mesapreview() {
-    MesaProntaAppTheme(Restaurant)
-
+private fun LoginScreenPreview() {
+    MesaProntaAppTheme {
+        LoginScreen(
+            onLoginSuccess = { }
+        )
+    }
 }
 
+@Preview(showBackground = true)
+@Composable
+private fun RestaurantDetailScreenPreview() {
+    // Criar um restaurante de exemplo para o preview
+    val sampleRestaurant = Restaurant(
+        id = "1",
+        name = "Restaurante Exemplo",
+        description = "Um ótimo restaurante para jantar",
+        rating = 4.5,
+        imageUrl = "",
+        menu = emptyList(),
+        tables = emptyList(),
+        openingHours = "18:00 - 23:00"
+    )
+
+    MesaProntaAppTheme {
+        RestaurantDetailScreen(
+            restaurant = sampleRestaurant,
+            onBack = { },
+            onReserveClicked = { _, _ -> }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MainScreenWithBottomNavPreview() {
+    MesaProntaAppTheme {
+        // Note: Para este preview funcionar, você precisará passar um ViewModel mock ou usar um contexto de teste
+        // MainScreenWithBottomNav(
+        //     selectedScreen = "home",
+        //     onScreenSelected = { },
+        //     onLogout = { },
+        //     onRestaurantSelected = { },
+        //     readyOrdersViewModel = // precisa de um viewModel mock aqui
+        // )
+
+        // Alternativa: mostrar uma mensagem ou criar um preview mais simples
+        LoginScreen(onLoginSuccess = { })
+    }
+}
