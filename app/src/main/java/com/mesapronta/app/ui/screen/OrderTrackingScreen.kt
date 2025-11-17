@@ -1,5 +1,6 @@
 package com.mesapronta.app.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,55 +8,80 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderTrackingScreen(modifier: Modifier = Modifier) {
-    var orderStatus by remember { mutableStateOf(OrderStatus.CONFIRMED) }
-    var timeElapsed by remember { mutableStateOf(0) }
-    var estimatedTime by remember { mutableStateOf(25) }
 
-    // Timer em tempo real
-    LaunchedEffect(key1 = orderStatus) {
-        while (timeElapsed < 3600 && orderStatus != OrderStatus.DELIVERED) {
+    val context = LocalContext.current
+
+    val orders = listOf(
+        "Pizzaria do DED — Unidade Central",
+        "Hamburgueria Black House Burgers Premium Delivery",
+        "Sushi Top Express Fast Fresh Delivery"
+    )
+
+    var currentOrderIndex by rememberSaveable { mutableStateOf(0) }
+    var orderStatus by rememberSaveable { mutableStateOf(OrderStatus.CONFIRMED) }
+    var timeElapsed by rememberSaveable { mutableStateOf(0) }
+    var estimatedTime by rememberSaveable { mutableStateOf(5) }
+
+    val totalTime = 15 // menor para teste
+
+    // TIMER
+    LaunchedEffect(currentOrderIndex) {
+
+        timeElapsed = 0
+        orderStatus = OrderStatus.CONFIRMED
+
+        while (timeElapsed < totalTime) {
             delay(1000L)
             timeElapsed++
 
-            when (timeElapsed) {
-                in 0..300 -> estimatedTime = 25
-                in 301..600 -> estimatedTime = 20
-                in 601..900 -> estimatedTime = 15
-                in 901..1200 -> estimatedTime = 10
-                in 1201..1500 -> estimatedTime = 5
-                else -> estimatedTime = 0
+            val progress = timeElapsed.toFloat() / totalTime.toFloat()
+
+            orderStatus = when {
+                progress < 0.25f -> OrderStatus.CONFIRMED
+                progress < 0.50f -> OrderStatus.PREPARING
+                progress < 0.75f -> OrderStatus.READY
+                progress < 1.00f -> OrderStatus.ON_THE_WAY
+                else -> OrderStatus.DELIVERED
             }
 
-            when (timeElapsed) {
-                120 -> orderStatus = OrderStatus.PREPARING
-                480 -> orderStatus = OrderStatus.READY
-                900 -> orderStatus = OrderStatus.ON_THE_WAY
-                1200 -> orderStatus = OrderStatus.DELIVERED
-            }
+            estimatedTime = (totalTime - timeElapsed) / 3 + 1
+        }
+
+        delay(500)
+
+        if (currentOrderIndex < orders.lastIndex) {
+            currentOrderIndex++
+        } else {
+            Toast.makeText(
+                context,
+                "Pedidos finalizados, prontos para o consumo!",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
-    val currentOrder = remember(orderStatus, timeElapsed) {
-        CurrentOrder(
-            id = "ORD-${System.currentTimeMillis().toString().takeLast(6)}",
-            restaurantName = "Pizzaria do DED",
-            status = orderStatus,
-            timeElapsed = timeElapsed,
-            estimatedTime = estimatedTime,
-            items = listOf("Pizza Margherita", "Coca-Cola 2L", "Brownie"),
-            total = 89.90
-        )
-    }
+    val currentOrder = CurrentOrder(
+        id = "ORD-${System.currentTimeMillis().toString().takeLast(6)}",
+        restaurantName = orders[currentOrderIndex],
+        status = orderStatus,
+        timeElapsed = timeElapsed,
+        estimatedTime = estimatedTime,
+        items = listOf("Pizza Margherita", "Refrigerante", "Brownie"),
+        total = 89.90
+    )
 
     Scaffold(
         topBar = {
@@ -75,12 +101,12 @@ fun OrderTrackingScreen(modifier: Modifier = Modifier) {
                 .background(MaterialTheme.colorScheme.background)
         ) {
             OrderHeader(currentOrder)
-            OrderTimeline(currentStatus = orderStatus, timeElapsed = timeElapsed)
+            OrderTimeline(currentOrder.status, currentOrder.timeElapsed)
             OrderDetails(currentOrder)
             OrderControls(
-                currentStatus = orderStatus,
-                onContactRestaurant = { /* Abrir chat */ },
-                onCancelOrder = { /* Cancelar pedido */ }
+                currentStatus = currentOrder.status,
+                onContactRestaurant = {},
+                onCancelOrder = {}
             )
         }
     }
@@ -102,34 +128,39 @@ data class CurrentOrder(
 
 @Composable
 fun OrderHeader(order: CurrentOrder) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
+
         Column(modifier = Modifier.padding(16.dp)) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+
+                Column(Modifier.weight(1f)) {
+
                     Text(
                         order.restaurantName,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+
                     Text(
                         "Pedido #${order.id}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
 
-                RealTimeTimer(timeElapsed = order.timeElapsed)
+                RealTimeTimer(order.timeElapsed)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -138,9 +169,7 @@ fun OrderHeader(order: CurrentOrder) {
                 progress = calculateProgress(order.status),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    .height(8.dp)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -149,17 +178,8 @@ fun OrderHeader(order: CurrentOrder) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    "Status: ${getStatusText(order.status)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Text(
-                    if (order.estimatedTime > 0) "⏱ ${order.estimatedTime} min" else "🕐 Chegando...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Text("Status: ${getStatusText(order.status)}")
+                Text("⏱ ${order.estimatedTime} min")
             }
         }
     }
@@ -195,15 +215,24 @@ fun RealTimeTimer(timeElapsed: Int) {
     }
 }
 
+data class TimelineStep(
+    val status: OrderStatus,
+    val title: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
+
 @Composable
 fun OrderTimeline(currentStatus: OrderStatus, timeElapsed: Int) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
+
         Column(modifier = Modifier.padding(16.dp)) {
+
             Text(
                 "Andamento do Pedido",
                 style = MaterialTheme.typography.titleMedium,
@@ -220,8 +249,11 @@ fun OrderTimeline(currentStatus: OrderStatus, timeElapsed: Int) {
             )
 
             Column {
-                for ((index, step) in steps.withIndex()) {
-                    val isCompleted = steps.indexOf<Any>(step.status) <= steps.indexOf<Any>(currentStatus)
+                steps.forEachIndexed { index, step ->
+
+                    val isCompleted = steps.indexOfFirst { it.status == step.status } <=
+                            steps.indexOfFirst { it.status == currentStatus }
+
                     val isCurrent = step.status == currentStatus
 
                     TimelineStepItem(
@@ -230,6 +262,7 @@ fun OrderTimeline(currentStatus: OrderStatus, timeElapsed: Int) {
                         isCurrent = isCurrent,
                         isLast = index == steps.size - 1
                     )
+
                     if (index < steps.size - 1) {
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -239,12 +272,6 @@ fun OrderTimeline(currentStatus: OrderStatus, timeElapsed: Int) {
     }
 }
 
-data class TimelineStep(
-    val status: OrderStatus,
-    val title: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
-
 @Composable
 fun TimelineStepItem(
     step: TimelineStep,
@@ -252,21 +279,29 @@ fun TimelineStepItem(
     isCurrent: Boolean,
     isLast: Boolean
 ) {
+
     Row(verticalAlignment = Alignment.Top) {
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
             Icon(
                 imageVector = step.icon,
                 contentDescription = step.title,
                 tint = if (isCompleted) MaterialTheme.colorScheme.primary else Color.Gray,
                 modifier = Modifier.size(24.dp)
             )
+
             if (!isLast) {
+
                 Spacer(modifier = Modifier.height(4.dp))
+
                 Box(
                     modifier = Modifier
                         .width(2.dp)
                         .height(40.dp)
-                        .background(if (isCompleted) MaterialTheme.colorScheme.primary else Color.Gray)
+                        .background(
+                            if (isCompleted) MaterialTheme.colorScheme.primary else Color.Gray
+                        )
                 )
             }
         }
@@ -274,6 +309,7 @@ fun TimelineStepItem(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
+
             Text(
                 step.title,
                 style = MaterialTheme.typography.bodyMedium,
@@ -286,13 +322,16 @@ fun TimelineStepItem(
 
 @Composable
 fun OrderDetails(order: CurrentOrder) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
+
         Column(modifier = Modifier.padding(16.dp)) {
+
             Text(
                 "Detalhes do Pedido",
                 style = MaterialTheme.typography.titleMedium,
@@ -321,12 +360,14 @@ fun OrderControls(
     onContactRestaurant: () -> Unit,
     onCancelOrder: () -> Unit
 ) {
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+
         Button(
             onClick = onContactRestaurant,
             modifier = Modifier.fillMaxWidth()
@@ -347,7 +388,6 @@ fun OrderControls(
     }
 }
 
-// Funções auxiliares
 private fun calculateProgress(status: OrderStatus): Float {
     return when (status) {
         OrderStatus.CONFIRMED -> 0.2f
