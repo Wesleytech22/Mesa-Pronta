@@ -3,6 +3,9 @@ package com.mesapronta.app.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,12 +20,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderTrackingScreen(modifier: Modifier = Modifier) {
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val orders = listOf(
         "Pizzaria do DED — Unidade Central",
@@ -39,7 +44,6 @@ fun OrderTrackingScreen(modifier: Modifier = Modifier) {
 
     // TIMER
     LaunchedEffect(currentOrderIndex) {
-
         timeElapsed = 0
         orderStatus = OrderStatus.CONFIRMED
 
@@ -53,7 +57,6 @@ fun OrderTrackingScreen(modifier: Modifier = Modifier) {
                 progress < 0.25f -> OrderStatus.CONFIRMED
                 progress < 0.50f -> OrderStatus.PREPARING
                 progress < 0.75f -> OrderStatus.READY
-                progress < 1.00f -> OrderStatus.ON_THE_WAY
                 else -> OrderStatus.DELIVERED
             }
 
@@ -83,6 +86,22 @@ fun OrderTrackingScreen(modifier: Modifier = Modifier) {
         total = 89.90
     )
 
+    // Criar lista de pedidos para o LazyRow
+    val allOrders = remember {
+        orders.mapIndexed { index, restaurantName ->
+            CurrentOrder(
+                id = "ORD-${1000 + index}",
+                restaurantName = restaurantName,
+                status = if (index == currentOrderIndex) orderStatus else
+                    if (index < currentOrderIndex) OrderStatus.DELIVERED else OrderStatus.CONFIRMED,
+                timeElapsed = if (index == currentOrderIndex) timeElapsed else 0,
+                estimatedTime = if (index == currentOrderIndex) estimatedTime else 5,
+                items = listOf("Item ${index + 1}A", "Item ${index + 1}B", "Item ${index + 1}C"),
+                total = 89.90 + (index * 10)
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -100,6 +119,19 @@ fun OrderTrackingScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            // LazyRow para mostrar múltiplos pedidos
+            OrdersCarousel(
+                orders = allOrders,
+                currentOrderIndex = currentOrderIndex,
+                onOrderSelected = { index ->
+                    coroutineScope.launch {
+                        currentOrderIndex = index
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             OrderHeader(currentOrder)
             OrderTimeline(currentOrder.status, currentOrder.timeElapsed)
             OrderDetails(currentOrder)
@@ -112,8 +144,122 @@ fun OrderTrackingScreen(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun OrdersCarousel(
+    orders: List<CurrentOrder>,
+    currentOrderIndex: Int,
+    onOrderSelected: (Int) -> Unit
+) {
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = currentOrderIndex
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            "Seus Pedidos",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        LazyRow(
+            state = listState,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(orders) { order ->
+                OrderCardItem(
+                    order = order,
+                    isSelected = orders.indexOf(order) == currentOrderIndex,
+                    onClick = { onOrderSelected(orders.indexOf(order)) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun OrderCardItem(
+    order: CurrentOrder,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .width(280.dp)
+            .height(120.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        ),
+        border = if (isSelected) {
+            CardDefaults.outlinedCardBorder()
+        } else {
+            null
+        },
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    order.restaurantName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    "Pedido #${order.id}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    getStatusText(order.status),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = when (order.status) {
+                        OrderStatus.DELIVERED -> MaterialTheme.colorScheme.primary
+                        OrderStatus.READY -> MaterialTheme.colorScheme.secondary
+                        OrderStatus.PREPARING -> MaterialTheme.colorScheme.tertiary
+                        OrderStatus.CONFIRMED -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+
+                Text(
+                    "R$ ${"%.2f".format(order.total)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+// O resto do código permanece igual (enum, data class, e outras composables)...
+
 enum class OrderStatus {
-    CONFIRMED, PREPARING, READY, ON_THE_WAY, DELIVERED
+    CONFIRMED, PREPARING, READY, DELIVERED
 }
 
 data class CurrentOrder(
@@ -244,7 +390,6 @@ fun OrderTimeline(currentStatus: OrderStatus, timeElapsed: Int) {
                 TimelineStep(OrderStatus.CONFIRMED, "Pedido Confirmado", Icons.Default.CheckCircle),
                 TimelineStep(OrderStatus.PREPARING, "Preparando", Icons.Default.RestaurantMenu),
                 TimelineStep(OrderStatus.READY, "Pronto", Icons.Default.Verified),
-                TimelineStep(OrderStatus.ON_THE_WAY, "A Caminho", Icons.Default.DirectionsWalk),
                 TimelineStep(OrderStatus.DELIVERED, "Entregue", Icons.Default.DoneAll)
             )
 
@@ -393,7 +538,6 @@ private fun calculateProgress(status: OrderStatus): Float {
         OrderStatus.CONFIRMED -> 0.2f
         OrderStatus.PREPARING -> 0.4f
         OrderStatus.READY -> 0.6f
-        OrderStatus.ON_THE_WAY -> 0.8f
         OrderStatus.DELIVERED -> 1.0f
     }
 }
@@ -403,7 +547,6 @@ private fun getStatusText(status: OrderStatus): String {
         OrderStatus.CONFIRMED -> "Confirmado"
         OrderStatus.PREPARING -> "Preparando"
         OrderStatus.READY -> "Pronto"
-        OrderStatus.ON_THE_WAY -> "A Caminho"
         OrderStatus.DELIVERED -> "Entregue"
     }
 }
