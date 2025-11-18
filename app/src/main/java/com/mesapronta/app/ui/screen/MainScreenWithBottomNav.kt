@@ -1,31 +1,21 @@
+// MainScreenWithBottomNav.kt - ATUALIZADO
 package com.mesapronta.app.ui.screen
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.Support
-import androidx.compose.material.icons.filled.TrackChanges
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mesapronta.app.model.Restaurant
-import com.mesapronta.app.ui.screen.ComplaintsScreen
-import com.mesapronta.app.ui.screen.OrdersScreen
-import com.mesapronta.app.ui.screens.HomeScreen
-import com.mesapronta.app.ui.screens.OrderTrackingScreen
+import com.mesapronta.app.ui.screens.*
 import com.mesapronta.app.viewmodel.ReadyOrdersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,11 +25,14 @@ fun MainScreenWithBottomNav(
     onScreenSelected: (String) -> Unit,
     onLogout: () -> Unit,
     onRestaurantSelected: (Restaurant) -> Unit,
-    onNavigateToOrderTracking: () -> Unit, // NOVO: Parâmetro adicionado
+    onNavigateToOrderTracking: () -> Unit,
     readyOrdersViewModel: ReadyOrdersViewModel,
-    currentUserName: String? = null, // NOVO: Parâmetro para nome do usuário
+    currentUserName: String? = null,
+    currentUserEmail: String? = null, // NOVO: Adicionar email do usuário
     modifier: Modifier = Modifier
 ) {
+    var showSettingsScreen by remember { mutableStateOf(false) }
+
     val navigationItems = listOf(
         NavigationItem("home", "Início", Icons.Default.Home),
         NavigationItem("orders", "Pedidos", Icons.Default.ListAlt),
@@ -50,60 +43,80 @@ fun MainScreenWithBottomNav(
     // Coletar estado dos pedidos prontos
     val hasNewReadyOrders by readyOrdersViewModel.hasNewReadyOrders.collectAsStateWithLifecycle()
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                navigationItems.forEach { item ->
-                    NavigationBarItem(
-                        icon = {
-                            // Adicionar badge apenas na aba "Início" quando houver pedidos prontos
-                            if (item.id == "home" && hasNewReadyOrders) {
-                                BadgedBox(
-                                    badge = {
-                                        Badge(
-                                            containerColor = MaterialTheme.colorScheme.error
+    // Se mostrar tela de configurações
+    if (showSettingsScreen) {
+        SettingsScreen(
+            currentUserName = currentUserName,
+            currentUserEmail = currentUserEmail,
+            onLogout = onLogout,
+            onBack = { showSettingsScreen = false },
+            modifier = modifier
+        )
+    } else {
+        Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    navigationItems.forEach { item ->
+                        NavigationBarItem(
+                            icon = {
+                                // Adicionar badge apenas na aba "Início" quando houver pedidos prontos
+                                if (item.id == "home" && hasNewReadyOrders) {
+                                    BadgedBox(
+                                        badge = {
+                                            Badge(
+                                                containerColor = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    ) {
+                                        Icon(
+                                            item.icon,
+                                            contentDescription = item.title
                                         )
                                     }
-                                ) {
-                                    Icon(
-                                        item.icon,
-                                        contentDescription = item.title
-                                    )
+                                } else {
+                                    Icon(item.icon, contentDescription = item.title)
                                 }
-                            } else {
-                                Icon(item.icon, contentDescription = item.title)
-                            }
-                        },
-                        label = { Text(item.title) },
-                        selected = selectedScreen == item.id,
-                        onClick = { onScreenSelected(item.id) }
-                    )
+                            },
+                            label = { Text(item.title) },
+                            selected = selectedScreen == item.id,
+                            onClick = { onScreenSelected(item.id) }
+                        )
+                    }
                 }
+            },
+            floatingActionButton = {
+                // NOVO: Botão flutuante para configurações
+                ExtendedFloatingActionButton(
+                    onClick = { showSettingsScreen = true },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Configurações") },
+                    text = { Text("Configurações") },
+                    modifier = Modifier.padding(16.dp)
+                )
             }
-        }
-    ) { paddingValues ->
-        when (selectedScreen) {
-            "home" -> HomeScreen(
-                onLogout = onLogout,
-                onRestaurantSelected = onRestaurantSelected,
-                onNavigateToOrderTracking = onNavigateToOrderTracking, // NOVO: Passa o callback
-                readyOrdersViewModel = readyOrdersViewModel,
-                currentUserName = currentUserName, // NOVO: Passa o nome do usuário
-                modifier = Modifier.padding(paddingValues)
-            )
-            "orders" -> OrdersScreen(
-                modifier = Modifier.padding(paddingValues)
-            )
-            "tracking" -> OrderTrackingScreen(
-                onNavigateToReadyOrders = {
-                    // Quando finaliza o pedido, volta para home
-                    onScreenSelected("home")
-                },
-                modifier = Modifier.padding(paddingValues)
-            )
-            "complaints" -> ComplaintsScreen(
-                modifier = Modifier.padding(paddingValues)
-            )
+        ) { paddingValues ->
+            when (selectedScreen) {
+                "home" -> HomeScreen(
+                    onLogout = onLogout,
+                    onRestaurantSelected = onRestaurantSelected,
+                    onNavigateToOrderTracking = onNavigateToOrderTracking,
+                    readyOrdersViewModel = readyOrdersViewModel,
+                    currentUserName = currentUserName,
+                    modifier = Modifier.padding(paddingValues)
+                )
+                "orders" -> OrdersScreen(
+                    modifier = Modifier.padding(paddingValues)
+                )
+                "tracking" -> OrderTrackingScreen(
+                    onNavigateToReadyOrders = {
+                        // Quando finaliza o pedido, volta para home
+                        onScreenSelected("home")
+                    },
+                    modifier = Modifier.padding(paddingValues)
+                )
+                "complaints" -> ComplaintsScreen(
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
         }
     }
 }

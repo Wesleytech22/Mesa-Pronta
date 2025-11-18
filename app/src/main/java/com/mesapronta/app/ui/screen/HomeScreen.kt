@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -106,7 +107,17 @@ val sampleRestaurants = listOf(
     )
 )
 
-val categories = listOf("Italiana", "Japonesa", "Brasileira", "Mexicana", "Chinesa", "Árabe")
+// NOVO: Mapa de categorias com seus respectivos ícones
+val categoriesWithIcons = mapOf(
+    "Italiana" to Icons.Default.Restaurant,
+    "Japonesa" to Icons.Default.SetMeal,
+    "Brasileira" to Icons.Default.OutdoorGrill,
+    "Mexicana" to Icons.Default.LocalFireDepartment,
+    "Chinesa" to Icons.Default.RamenDining,
+    "Árabe" to Icons.Default.KebabDining
+)
+
+val categories = categoriesWithIcons.keys.toList()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +126,7 @@ fun HomeScreen(
     onRestaurantSelected: (Restaurant) -> Unit,
     onNavigateToOrderTracking: () -> Unit,
     readyOrdersViewModel: ReadyOrdersViewModel,
-    currentUserName: String? = null, // NOVO: Parâmetro para receber o nome do usuário
+    currentUserName: String? = null,
     autoShowReadyOrders: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -208,7 +219,7 @@ fun HomeScreen(
                 onLogout = onLogout,
                 hasNotifications = hasNewReadyOrders,
                 onNavigateToOrderTracking = onNavigateToOrderTracking,
-                currentUserName = currentUserName // NOVO: Passa o nome do usuário
+                currentUserName = currentUserName
             )
         }
 
@@ -522,7 +533,7 @@ fun HomeHeader(
     onLogout: () -> Unit,
     hasNotifications: Boolean,
     onNavigateToOrderTracking: () -> Unit,
-    currentUserName: String? = null // NOVO: Parâmetro para nome do usuário
+    currentUserName: String? = null
 ) {
     Row(
         modifier = Modifier
@@ -645,7 +656,20 @@ fun CategoriesSection(
                             if (selectedCategory == category) "" else category
                         )
                     },
-                    label = { Text(category) }
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // NOVO: Ícone da categoria
+                            categoriesWithIcons[category]?.let { icon ->
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Text(category)
+                        }
+                    }
                 )
             }
         }
@@ -829,7 +853,7 @@ fun EmptyRestaurantsState() {
     }
 }
 
-// COMPONENTE: Diálogo de Cupom
+// COMPONENTE: Diálogo de Cupom (ATUALIZADO COM ÍCONES)
 @Composable
 fun CouponDialog(
     couponCategorySelected: String?,
@@ -845,29 +869,39 @@ fun CouponDialog(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.padding(16.dp)
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    "Gerar Cupom de Desconto",
+                    "🎫 Gerar Cupom de Desconto",
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    textAlign = TextAlign.Center
                 )
+
                 Spacer(Modifier.height(16.dp))
 
                 Text(
                     "Selecione uma categoria:",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.Start)
                 )
-                Spacer(Modifier.height(8.dp))
 
+                Spacer(Modifier.height(12.dp))
+
+                // NOVO: LazyRow com ícones para as categorias
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(categories) { category ->
-                        FilterChip(
-                            selected = category == couponCategorySelected,
-                            onClick = { onCategorySelected(category) },
-                            label = { Text(category) }
+                        val icon = categoriesWithIcons[category]
+                        CategoryChip(
+                            category = category,
+                            icon = icon,
+                            isSelected = category == couponCategorySelected,
+                            onClick = { onCategorySelected(category) }
                         )
                     }
                 }
@@ -877,45 +911,147 @@ fun CouponDialog(
                 Button(
                     onClick = onGenerateCoupon,
                     enabled = couponCategorySelected != null,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
-                    Text("Gerar Cupom para ${couponCategorySelected ?: "Categoria"}")
+                    // NOVO: Mostra o ícone da categoria selecionada no botão
+                    if (couponCategorySelected != null) {
+                        val selectedIcon = categoriesWithIcons[couponCategorySelected]
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            selectedIcon?.let { icon ->
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Text("Gerar Cupom para $couponCategorySelected")
+                        }
+                    } else {
+                        Text("Selecione uma categoria")
+                    }
                 }
 
                 generatedCoupon?.let { coupon ->
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(20.dp))
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                "Seu Cupom Gerado:",
-                                style = MaterialTheme.typography.bodyMedium
+                                "🎉 Seu Cupom Gerado!",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(Modifier.height(8.dp))
+
+                            Spacer(Modifier.height(12.dp))
+
                             Text(
                                 coupon,
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 4.sp
                             )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                "Use este código na finalização do pedido",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                textAlign = TextAlign.Center
+                            )
+
                             Spacer(Modifier.height(16.dp))
+
                             Button(
                                 onClick = { onCopyAndClose(coupon) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
                             ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Copiar",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("Copiar e Fechar")
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+// NOVO: Componente personalizado para chips de categoria com ícones
+@Composable
+fun CategoryChip(
+    category: String,
+    icon: ImageVector?,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(100.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 4.dp else 2.dp
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            icon?.let {
+                Icon(
+                    imageVector = it,
+                    contentDescription = category,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Text(
+                text = category,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
         }
     }
 }
