@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +35,8 @@ class MainActivity : ComponentActivity() {
             MesaProntaAppTheme {
                 val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
                 val currentUser by authViewModel.currentUser.collectAsState()
+                val isLoading by authViewModel.isLoading.collectAsState()
+                val registerError by authViewModel.registerError.collectAsState()
 
                 // Variáveis de Estado de Dados
                 var selectedRestaurant by remember { mutableStateOf<Restaurant?>(null) }
@@ -45,26 +48,55 @@ class MainActivity : ComponentActivity() {
                 var isReserving by remember { mutableStateOf(false) }
                 var isPaying by remember { mutableStateOf(false) }
                 var isAddingFood by remember { mutableStateOf(false) }
-                var isTrackingOrder by remember { mutableStateOf(false) } // NOVO: Estado para acompanhar pedido
-                var showRegisterScreen by remember { mutableStateOf(false) } // NOVO: Estado para tela de cadastro
+                var isTrackingOrder by remember { mutableStateOf(false) }
+                var showRegisterScreen by remember { mutableStateOf(false) }
 
                 // Estado para Bottom Navigation
                 var selectedScreen by remember { mutableStateOf("home") }
 
+                // CORREÇÃO: Observar mudanças no estado de login para fechar a tela de cadastro
+                LaunchedEffect(isLoggedIn) {
+                    if (isLoggedIn && showRegisterScreen) {
+                        // Fecha a tela de cadastro quando o login é bem-sucedido
+                        showRegisterScreen = false
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Cadastro realizado com sucesso!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                // CORREÇÃO: Mostrar erros de registro
+                LaunchedEffect(registerError) {
+                    registerError?.let { error ->
+                        if (showRegisterScreen) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                error,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+
+                // LÓGICA PRINCIPAL DE NAVEGAÇÃO
                 when {
-                    // 🔐 1. Tela de Cadastro (NOVO)
+                    // 🔐 1. Tela de Cadastro
                     showRegisterScreen -> {
                         RegisterScreen(
                             onRegisterSuccess = {
-                                showRegisterScreen = false
-                                Toast.makeText(this@MainActivity, "Cadastro realizado com sucesso!", Toast.LENGTH_SHORT).show()
+                                // Navegação tratada automaticamente pelo LaunchedEffect acima
                             },
                             onNavigateToLogin = {
                                 showRegisterScreen = false
+                                authViewModel.clearError()
                             },
                             onRegister = { fullName, username, email, password ->
                                 authViewModel.register(fullName, username, email, password)
-                            }
+                            },
+                            isLoading = isLoading,
+                            registerError = registerError
                         )
                     }
 
@@ -74,23 +106,26 @@ class MainActivity : ComponentActivity() {
                             onLoginSuccess = { username, password ->
                                 val success = authViewModel.login(username, password)
                                 if (!success) {
-                                    Toast.makeText(this@MainActivity, "Usuário ou senha inválidos", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Usuário ou senha inválidos",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             },
                             onNavigateToRegister = {
                                 showRegisterScreen = true
+                                authViewModel.clearError()
                             }
                         )
                     }
 
-                    // 📦 3. Tela de Acompanhamento de Pedido (NOVO)
+                    // 📦 3. Tela de Acompanhamento de Pedido
                     isTrackingOrder -> {
                         OrderTrackingScreen(
                             onNavigateToReadyOrders = {
-                                // Quando finaliza o pedido, volta para home e mostra pedidos prontos
                                 isTrackingOrder = false
                                 selectedScreen = "home"
-                                // Adiciona um pedido pronto de exemplo
                                 readyOrdersViewModel.addReadyOrder(
                                     com.mesapronta.app.model.ReadyOrder(
                                         id = "ORD-${System.currentTimeMillis().toString().takeLast(6)}",
@@ -132,7 +167,6 @@ class MainActivity : ComponentActivity() {
                             reservation = currentReservationDetails!!,
                             cartItems = cartItems,
                             onReservationConfirmed = {
-                                // Limpa todos os estados para voltar à Home após a confirmação
                                 currentReservationDetails = null
                                 selectedRestaurant = null
                                 selectedTimeForReservation = null
@@ -142,7 +176,6 @@ class MainActivity : ComponentActivity() {
                                 cartItems = emptyList()
                                 selectedScreen = "home"
 
-                                // Simular pedido pronto após confirmação (para demonstração)
                                 readyOrdersViewModel.addReadyOrder(
                                     com.mesapronta.app.model.ReadyOrder(
                                         id = "ORD-${System.currentTimeMillis().toString().takeLast(6)}",
@@ -155,7 +188,11 @@ class MainActivity : ComponentActivity() {
                                     )
                                 )
 
-                                Toast.makeText(this@MainActivity, "Reserva confirmada com sucesso!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Reserva confirmada com sucesso!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             },
                             onBack = {
                                 isPaying = false
@@ -215,11 +252,11 @@ class MainActivity : ComponentActivity() {
                                 currentReservationDetails = null
                                 cartItems = emptyList()
                             },
-                            onNavigateToOrderTracking = { // NOVO: Callback para navegar para acompanhamento
+                            onNavigateToOrderTracking = {
                                 isTrackingOrder = true
                             },
                             readyOrdersViewModel = readyOrdersViewModel,
-                            currentUserName = currentUser?.fullName // NOVO: Passa o nome do usuário
+                            currentUserName = currentUser?.fullName
                         )
                     }
                 }

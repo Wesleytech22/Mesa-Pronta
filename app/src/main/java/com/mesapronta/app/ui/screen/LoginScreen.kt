@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,18 +37,18 @@ import coil.compose.AsyncImage
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (username: String, password: String) -> Unit, // Modificado para receber credenciais
-    onNavigateToRegister: () -> Unit // Novo parâmetro para navegação
+    onLoginSuccess: (username: String, password: String) -> Unit,
+    onNavigateToRegister: () -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("wesley.dias") }
+    var password by remember { mutableStateOf("1234") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Background com imagem da internet
+        // Background com imagem
         AsyncImage(
             model = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
             contentDescription = "Restaurant background",
@@ -69,10 +71,11 @@ fun LoginScreen(
                 )
         )
 
-        // Conteúdo do login
+        // Conteúdo do login com scroll para garantir que tudo seja visível
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(32.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -112,7 +115,7 @@ fun LoginScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(32.dp)
+                        .padding(24.dp) // Reduzi o padding para caber mais conteúdo
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -126,7 +129,7 @@ fun LoginScreen(
                     Text(
                         text = "Entre com suas credenciais",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 24.dp),
+                        modifier = Modifier.padding(bottom = 16.dp), // Reduzi o espaçamento
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
@@ -138,7 +141,7 @@ fun LoginScreen(
                         singleLine = true
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp)) // Reduzi o espaçamento
 
                     OutlinedTextField(
                         value = password,
@@ -153,11 +156,11 @@ fun LoginScreen(
                         Text(
                             text = errorMessage,
                             color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 16.dp)
+                            modifier = Modifier.padding(top = 12.dp) // Reduzi o espaçamento
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp)) // Espaçamento antes do botão
 
                     Button(
                         onClick = {
@@ -187,37 +190,50 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp)) // Espaçamento antes do botão de cadastro
 
+                    // BOTÃO PARA CADASTRO - AGORA DEVE SER VISÍVEL
                     TextButton(
-                        onClick = onNavigateToRegister
+                        onClick = onNavigateToRegister,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Não tem conta? Cadastre-se")
+                        Text(
+                            "Não tem conta? Cadastre-se",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
 
-                    // Exemplo de credenciais (apenas para desenvolvimento)
+                    Spacer(modifier = Modifier.height(16.dp)) // Espaçamento antes das credenciais de exemplo
+
+                    // Credenciais de exemplo
                     Column(
-                        modifier = Modifier.padding(top = 16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             "Exemplo para teste:",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                         Text(
                             "Usuário: wesley.dias",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                         Text(
                             "Senha: 1234",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
+
+            // Espaço extra no final para garantir que tudo seja visível
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

@@ -2,6 +2,7 @@ package com.mesapronta.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +26,10 @@ class AuthViewModel : ViewModel() {
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    // Lista de usuários cadastrados (em uma app real, isso viria de um banco de dados)
+    private val _registerError = MutableStateFlow<String?>(null)
+    val registerError: StateFlow<String?> = _registerError.asStateFlow()
+
+    // Lista de usuários cadastrados
     private val registeredUsers = mutableListOf<User>()
 
     init {
@@ -49,6 +53,7 @@ class AuthViewModel : ViewModel() {
         return if (user != null) {
             viewModelScope.launch {
                 _isLoading.value = true
+                delay(1000)
                 _currentUser.value = user
                 _isLoggedIn.value = true
                 _isLoading.value = false
@@ -59,29 +64,34 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun register(fullName: String, username: String, email: String, password: String): Boolean {
-        // Verifica se o username já existe
-        val userExists = registeredUsers.any { it.username == username }
+    fun register(fullName: String, username: String, email: String, password: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _registerError.value = null
 
-        return if (!userExists) {
-            val newUser = User(
-                id = System.currentTimeMillis().toString(),
-                fullName = fullName,
-                username = username,
-                email = email,
-                password = password
-            )
+            // Simula chamada de API
+            delay(1500)
 
-            viewModelScope.launch {
-                _isLoading.value = true
+            // Verifica se o usuário já existe
+            val userExists = registeredUsers.any { it.username == username }
+
+            if (userExists) {
+                _registerError.value = "Nome de usuário já existe"
+                _isLoading.value = false
+            } else {
+                val newUser = User(
+                    id = System.currentTimeMillis().toString(),
+                    fullName = fullName,
+                    username = username,
+                    email = email,
+                    password = password
+                )
+
                 registeredUsers.add(newUser)
                 _currentUser.value = newUser
                 _isLoggedIn.value = true
                 _isLoading.value = false
             }
-            true
-        } else {
-            false
         }
     }
 
@@ -89,10 +99,11 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _currentUser.value = null
             _isLoggedIn.value = false
+            _registerError.value = null
         }
     }
 
-    fun getCurrentUser(): User? {
-        return _currentUser.value
+    fun clearError() {
+        _registerError.value = null
     }
 }
