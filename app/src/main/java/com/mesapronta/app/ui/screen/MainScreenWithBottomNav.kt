@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mesapronta.app.model.Restaurant
 import com.mesapronta.app.ui.screen.ComplaintsScreen
 import com.mesapronta.app.ui.screen.OrdersScreen
+import com.mesapronta.app.ui.screens.HomeScreen
 import com.mesapronta.app.ui.screens.OrderTrackingScreen
 import com.mesapronta.app.viewmodel.ReadyOrdersViewModel
 
@@ -34,7 +35,10 @@ fun MainScreenWithBottomNav(
     onScreenSelected: (String) -> Unit,
     onLogout: () -> Unit,
     onRestaurantSelected: (Restaurant) -> Unit,
-    readyOrdersViewModel: ReadyOrdersViewModel
+    onNavigateToOrderTracking: () -> Unit, // NOVO: Parâmetro adicionado
+    readyOrdersViewModel: ReadyOrdersViewModel,
+    currentUserName: String? = null, // NOVO: Parâmetro para nome do usuário
+    modifier: Modifier = Modifier
 ) {
     val navigationItems = listOf(
         NavigationItem("home", "Início", Icons.Default.Home),
@@ -82,13 +86,19 @@ fun MainScreenWithBottomNav(
             "home" -> HomeScreen(
                 onLogout = onLogout,
                 onRestaurantSelected = onRestaurantSelected,
+                onNavigateToOrderTracking = onNavigateToOrderTracking, // NOVO: Passa o callback
                 readyOrdersViewModel = readyOrdersViewModel,
+                currentUserName = currentUserName, // NOVO: Passa o nome do usuário
                 modifier = Modifier.padding(paddingValues)
             )
             "orders" -> OrdersScreen(
                 modifier = Modifier.padding(paddingValues)
             )
             "tracking" -> OrderTrackingScreen(
+                onNavigateToReadyOrders = {
+                    // Quando finaliza o pedido, volta para home
+                    onScreenSelected("home")
+                },
                 modifier = Modifier.padding(paddingValues)
             )
             "complaints" -> ComplaintsScreen(

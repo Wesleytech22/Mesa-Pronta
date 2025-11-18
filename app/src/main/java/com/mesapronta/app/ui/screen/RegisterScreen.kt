@@ -10,10 +10,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -28,23 +34,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
 @Composable
-fun LoginScreen(
-    onLoginSuccess: (username: String, password: String) -> Unit, // Modificado para receber credenciais
-    onNavigateToRegister: () -> Unit // Novo parâmetro para navegação
+fun RegisterScreen(
+    onRegisterSuccess: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onRegister: (fullName: String, username: String, email: String, password: String) -> Boolean
 ) {
+    var fullName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
+    val context = LocalContext.current
+
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1A237E).copy(alpha = 0.8f),
+                        Color(0xFF283593).copy(alpha = 0.6f),
+                        Color(0xFF303F9F).copy(alpha = 0.4f)
+                    )
+                )
+            )
     ) {
         // Background com imagem da internet
         AsyncImage(
@@ -54,7 +81,7 @@ fun LoginScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Overlay gradiente
+        // Overlay gradiente (agora usando Box com background)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -69,7 +96,7 @@ fun LoginScreen(
                 )
         )
 
-        // Conteúdo do login
+        // Conteúdo do cadastro
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -88,21 +115,21 @@ fun LoginScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = "Mesa Pronta",
+                    text = "Criar Conta",
                     style = MaterialTheme.typography.headlineLarge,
                     color = Color.White,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = "Seja Bem-vindo!",
+                    text = "Preencha seus dados para se cadastrar",
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center
                 )
             }
 
-            // Formulário de login
+            // Formulário de cadastro
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -117,35 +144,88 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Login",
+                        text = "Cadastro",
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.padding(bottom = 8.dp),
                         color = MaterialTheme.colorScheme.primary
                     )
 
                     Text(
-                        text = "Entre com suas credenciais",
+                        text = "Crie sua conta no Mesa Pronta",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 24.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    // Campo Nome Completo
                     OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Usuário") },
+                        value = fullName,
+                        onValueChange = { fullName = it },
+                        label = { Text("Nome Completo") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Campo Username
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Nome de Usuário") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Campo Email
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Campo Senha
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text("Senha") },
                         modifier = Modifier.fillMaxWidth(),
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (passwordVisible) "Ocultar senha" else "Mostrar senha"
+                                )
+                            }
+                        },
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Campo Confirmar Senha
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirmar Senha") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                Icon(
+                                    if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (confirmPasswordVisible) "Ocultar senha" else "Mostrar senha"
+                                )
+                            }
+                        },
                         singleLine = true
                     )
 
@@ -153,7 +233,8 @@ fun LoginScreen(
                         Text(
                             text = errorMessage,
                             color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 16.dp)
+                            modifier = Modifier.padding(top = 16.dp),
+                            textAlign = TextAlign.Center
                         )
                     }
 
@@ -161,15 +242,29 @@ fun LoginScreen(
 
                     Button(
                         onClick = {
-                            if (username.isBlank() || password.isBlank()) {
+                            if (fullName.isEmpty() || username.isEmpty() || email.isEmpty() || password.isEmpty()) {
                                 errorMessage = "Preencha todos os campos"
+                                return@Button
+                            }
+
+                            if (password != confirmPassword) {
+                                errorMessage = "As senhas não coincidem"
+                                return@Button
+                            }
+
+                            if (password.length < 4) {
+                                errorMessage = "A senha deve ter pelo menos 4 caracteres"
                                 return@Button
                             }
 
                             isLoading = true
                             errorMessage = ""
-                            onLoginSuccess(username, password)
-                            isLoading = false
+
+                            val success = onRegister(fullName, username, email, password)
+                            if (!success) {
+                                errorMessage = "Nome de usuário já existe"
+                                isLoading = false
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -183,38 +278,16 @@ fun LoginScreen(
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
-                            Text("Entrar", style = MaterialTheme.typography.bodyLarge)
+                            Text("Cadastrar", style = MaterialTheme.typography.bodyLarge)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     TextButton(
-                        onClick = onNavigateToRegister
+                        onClick = onNavigateToLogin
                     ) {
-                        Text("Não tem conta? Cadastre-se")
-                    }
-
-                    // Exemplo de credenciais (apenas para desenvolvimento)
-                    Column(
-                        modifier = Modifier.padding(top = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "Exemplo para teste:",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            "Usuário: wesley.dias",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            "Senha: 1234",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text("Já tem conta? Faça login")
                     }
                 }
             }

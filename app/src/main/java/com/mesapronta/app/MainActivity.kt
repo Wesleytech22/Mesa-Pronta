@@ -17,6 +17,7 @@ import com.mesapronta.app.ui.screen.FoodSelectionScreen
 import com.mesapronta.app.ui.screen.LoginScreen
 import com.mesapronta.app.ui.screen.MainScreenWithBottomNav
 import com.mesapronta.app.ui.screen.PaymentScreen
+import com.mesapronta.app.ui.screen.RegisterScreen
 import com.mesapronta.app.ui.screen.TableSelectionScreen
 import com.mesapronta.app.ui.screens.*
 import com.mesapronta.app.ui.theme.MesaProntaAppTheme
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MesaProntaAppTheme {
                 val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+                val currentUser by authViewModel.currentUser.collectAsState()
 
                 // Variáveis de Estado de Dados
                 var selectedRestaurant by remember { mutableStateOf<Restaurant?>(null) }
@@ -43,19 +45,73 @@ class MainActivity : ComponentActivity() {
                 var isReserving by remember { mutableStateOf(false) }
                 var isPaying by remember { mutableStateOf(false) }
                 var isAddingFood by remember { mutableStateOf(false) }
+                var isTrackingOrder by remember { mutableStateOf(false) } // NOVO: Estado para acompanhar pedido
+                var showRegisterScreen by remember { mutableStateOf(false) } // NOVO: Estado para tela de cadastro
 
                 // Estado para Bottom Navigation
                 var selectedScreen by remember { mutableStateOf("home") }
 
                 when {
-                    // 🔐 1. Tela de Login
-                    !isLoggedIn -> {
-                        LoginScreen(
-                            onLoginSuccess = { authViewModel.login("admin", "1234") }
+                    // 🔐 1. Tela de Cadastro (NOVO)
+                    showRegisterScreen -> {
+                        RegisterScreen(
+                            onRegisterSuccess = {
+                                showRegisterScreen = false
+                                Toast.makeText(this@MainActivity, "Cadastro realizado com sucesso!", Toast.LENGTH_SHORT).show()
+                            },
+                            onNavigateToLogin = {
+                                showRegisterScreen = false
+                            },
+                            onRegister = { fullName, username, email, password ->
+                                authViewModel.register(fullName, username, email, password)
+                            }
                         )
                     }
 
-                    // 🍽 2. Tela de Adicionar Comidas
+                    // 🔐 2. Tela de Login
+                    !isLoggedIn -> {
+                        LoginScreen(
+                            onLoginSuccess = { username, password ->
+                                val success = authViewModel.login(username, password)
+                                if (!success) {
+                                    Toast.makeText(this@MainActivity, "Usuário ou senha inválidos", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onNavigateToRegister = {
+                                showRegisterScreen = true
+                            }
+                        )
+                    }
+
+                    // 📦 3. Tela de Acompanhamento de Pedido (NOVO)
+                    isTrackingOrder -> {
+                        OrderTrackingScreen(
+                            onNavigateToReadyOrders = {
+                                // Quando finaliza o pedido, volta para home e mostra pedidos prontos
+                                isTrackingOrder = false
+                                selectedScreen = "home"
+                                // Adiciona um pedido pronto de exemplo
+                                readyOrdersViewModel.addReadyOrder(
+                                    com.mesapronta.app.model.ReadyOrder(
+                                        id = "ORD-${System.currentTimeMillis().toString().takeLast(6)}",
+                                        restaurantName = "Pizzaria do DED",
+                                        reservationTime = "19:00",
+                                        readyTime = "Agora",
+                                        tableNumber = 5,
+                                        items = listOf("Pizza Margherita", "Refrigerante", "Brownie"),
+                                        isCollected = false
+                                    )
+                                )
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Pedido finalizado! Verifique seus pedidos prontos.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        )
+                    }
+
+                    // 🍽 4. Tela de Adicionar Comidas
                     isAddingFood && selectedRestaurant != null -> {
                         FoodSelectionScreen(
                             menuItems = selectedRestaurant!!.menu,
@@ -70,7 +126,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // 💳 3. Tela de Pagamento
+                    // 💳 5. Tela de Pagamento
                     isPaying && currentReservationDetails != null -> {
                         PaymentScreen(
                             reservation = currentReservationDetails!!,
@@ -107,7 +163,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // 🪑 4. Tela de Seleção de Mesa
+                    // 🪑 6. Tela de Seleção de Mesa
                     isReserving && selectedRestaurant != null && selectedTimeForReservation != null -> {
                         TableSelectionScreen(
                             restaurant = selectedRestaurant!!,
@@ -126,7 +182,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // 📋 5. Tela de Detalhes do Restaurante
+                    // 📋 7. Tela de Detalhes do Restaurante
                     selectedRestaurant != null -> {
                         RestaurantDetailScreen(
                             restaurant = selectedRestaurant!!,
@@ -143,7 +199,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // 🏠 6. Tela Principal com Bottom Navigation
+                    // 🏠 8. Tela Principal com Bottom Navigation
                     else -> {
                         MainScreenWithBottomNav(
                             selectedScreen = selectedScreen,
@@ -154,11 +210,16 @@ class MainActivity : ComponentActivity() {
                                 isReserving = false
                                 isPaying = false
                                 isAddingFood = false
+                                isTrackingOrder = false
                                 selectedTimeForReservation = null
                                 currentReservationDetails = null
                                 cartItems = emptyList()
                             },
-                            readyOrdersViewModel = readyOrdersViewModel
+                            onNavigateToOrderTracking = { // NOVO: Callback para navegar para acompanhamento
+                                isTrackingOrder = true
+                            },
+                            readyOrdersViewModel = readyOrdersViewModel,
+                            currentUserName = currentUser?.fullName // NOVO: Passa o nome do usuário
                         )
                     }
                 }
