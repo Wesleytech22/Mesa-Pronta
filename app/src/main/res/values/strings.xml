@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Mesa Pronta</string>
+    <string name="app_name" />
     <string name="nova_reserva">Nova Reserva</string>
     <string name="minhas_reservas">Minhas Reservas</string>
     <string name="sobre_restaurante">Sobre o Restaurante</string>

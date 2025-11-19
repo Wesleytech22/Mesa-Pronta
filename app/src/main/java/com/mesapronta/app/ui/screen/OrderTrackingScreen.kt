@@ -56,7 +56,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderTrackingScreen(
-    onNavigateToReadyOrders: () -> Unit, // Novo parâmetro para navegação
+    onNavigateToReadyOrders: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -74,7 +74,7 @@ fun OrderTrackingScreen(
     var timeElapsed by rememberSaveable { mutableStateOf(0) }
     var estimatedTime by rememberSaveable { mutableStateOf(5) }
 
-    val totalTime = 15 // menor para teste
+    val totalTime = 15 // para teste
 
     // TIMER
     LaunchedEffect(currentOrderIndex) {
@@ -102,7 +102,6 @@ fun OrderTrackingScreen(
         if (currentOrderIndex < orders.lastIndex) {
             currentOrderIndex++
         } else {
-            // MODIFICAÇÃO AQUI: Navega para pedidos prontos em vez de mostrar Toast
             onNavigateToReadyOrders()
         }
     }
@@ -117,14 +116,14 @@ fun OrderTrackingScreen(
         total = 89.90
     )
 
-    // Criar lista de pedidos para o LazyRow
     val allOrders = remember {
         orders.mapIndexed { index, restaurantName ->
             CurrentOrder(
                 id = "ORD-${1000 + index}",
                 restaurantName = restaurantName,
-                status = if (index == currentOrderIndex) orderStatus else
-                    if (index < currentOrderIndex) OrderStatus.DELIVERED else OrderStatus.CONFIRMED,
+                status = if (index == currentOrderIndex) orderStatus
+                else if (index < currentOrderIndex) OrderStatus.DELIVERED
+                else OrderStatus.CONFIRMED,
                 timeElapsed = if (index == currentOrderIndex) timeElapsed else 0,
                 estimatedTime = if (index == currentOrderIndex) estimatedTime else 5,
                 items = listOf("Item ${index + 1}A", "Item ${index + 1}B", "Item ${index + 1}C"),
@@ -133,24 +132,14 @@ fun OrderTrackingScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Acompanhar Pedido") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        }
-    ) { paddingValues ->
+    // AGORA O SCAFFOLD SEM TOP BAR
+    Scaffold { paddingValues ->
         Column(
             modifier = modifier
                 .padding(paddingValues)
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // LazyRow para mostrar múltiplos pedidos
             OrdersCarousel(
                 orders = allOrders,
                 currentOrderIndex = currentOrderIndex,
