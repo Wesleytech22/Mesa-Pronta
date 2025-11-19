@@ -35,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +51,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -74,7 +79,7 @@ fun OrderTrackingScreen(
     var timeElapsed by rememberSaveable { mutableStateOf(0) }
     var estimatedTime by rememberSaveable { mutableStateOf(5) }
 
-    val totalTime = 15 // para teste
+    val totalTime = 15
 
     // TIMER
     LaunchedEffect(currentOrderIndex) {
@@ -132,14 +137,21 @@ fun OrderTrackingScreen(
         }
     }
 
-    // AGORA O SCAFFOLD SEM TOP BAR
-    Scaffold { paddingValues ->
+    // 🚀 SCAFFOLD CORRIGIDO
+    Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+        )
+    ) { innerPadding ->
+
         Column(
-            modifier = modifier
-                .padding(paddingValues)
+            modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
+                .padding(top = 0.dp)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+
             OrdersCarousel(
                 orders = allOrders,
                 currentOrderIndex = currentOrderIndex,
